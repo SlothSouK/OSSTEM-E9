@@ -555,6 +555,110 @@
     .sb-rank.rank-2 { color: #d1d5db; }
     .sb-rank.rank-3 { color: #fb923c; }
     .sb-rank.rank-other { color: #6b7280; }
+
+    /* ── 홈 탭 버튼 ── */
+    .game-tabs {
+      display: flex;
+      gap: 8px;
+      background: rgba(13,13,26,0.7);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 5px;
+    }
+    .tab-btn {
+      padding: 10px 36px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: #9ca3af;
+      background: transparent;
+      transition: background 0.2s, color 0.2s;
+      letter-spacing: 0.06em;
+      font-family: inherit;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: #fff;
+    }
+    .tab-btn:not(.active):hover { color: #e5e7eb; }
+
+    /* ── TOWN HALL 제목 ── */
+    .home-townhall {
+      font-size: 1.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #ff8c00, #2563eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 0.18em;
+      margin-top: 4px;
+      margin-bottom: 2px;
+    }
+
+    /* ── 펭귄 레이스 게임 화면 ── */
+    #screen-race {
+      position: relative;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    #race-canvas {
+      display: block;
+      flex-shrink: 0;
+      border-radius: 12px;
+    }
+    #race-sidebar {
+      width: 188px;
+      max-height: 94vh;
+      background: rgba(13,13,26,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 10px 8px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      backdrop-filter: blur(6px);
+    }
+    #race-sidebar::-webkit-scrollbar { width: 4px; }
+    #race-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+    /* ── 펭귄 레이스 승자 화면 ── */
+    #screen-race-winner {
+      position: relative;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      text-align: center;
+    }
+    #race-confetti-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .clapping-penguins {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 520px;
+      position: relative;
+      z-index: 1;
+      padding: 8px 0;
+    }
+    .clap-penguin {
+      font-size: 2.8rem;
+      display: inline-block;
+      animation: clap 0.5s ease-in-out infinite alternate;
+    }
+    @keyframes clap {
+      from { transform: rotate(-18deg) translateY(0); }
+      to   { transform: rotate(18deg) translateY(-10px); }
+    }
   </style>
 </head>
 <body>
@@ -563,9 +667,14 @@
 <div id="screen-home" class="screen active">
   <div class="home-title">
     <h1><span style="-webkit-text-fill-color:#ff8c00;color:#ff8c00;">OSSTEM</span> 재경총괄본부</h1>
+    <div class="home-townhall">TOWN HALL</div>
     <p>게임 모드를 선택하세요</p>
   </div>
-  <div class="mode-cards">
+  <div class="game-tabs">
+    <button class="tab-btn active" id="tab-escape" onclick="switchHomeTab('escape')">탈출</button>
+    <button class="tab-btn" id="tab-race" onclick="switchHomeTab('race')">레이스</button>
+  </div>
+  <div id="tab-content-escape" class="mode-cards">
     <div class="mode-card" id="btn-mode-bingo">
       <div class="mode-card-icon">🎯</div>
       <div class="mode-card-name">뽑기</div>
@@ -582,6 +691,14 @@
       <div class="mode-card-icon">🔒</div>
       <div class="mode-card-name">COMING SOON</div>
       <div class="mode-card-desc">준비 중입니다</div>
+    </div>
+  </div>
+  <div id="tab-content-race" class="mode-cards" style="display:none;">
+    <div class="mode-card" id="btn-mode-penguin-race">
+      <div class="mode-card-icon">🐧</div>
+      <div class="mode-card-name">펭귄 레이스</div>
+      <div class="mode-card-desc">30칸 트랙을 뒤뚱뒤뚱!<br>가장 먼저 결승선을 통과하라</div>
+      <div class="mode-card-tag">FIRST TO FINISH</div>
     </div>
   </div>
 </div>
@@ -631,6 +748,37 @@
   </div>
 </div>
 
+<!-- ⑤ 펭귄 레이스 게임 화면 -->
+<div id="screen-race" class="screen">
+  <canvas id="race-canvas"></canvas>
+  <div id="race-sidebar">
+    <div class="sidebar-header">
+      <span>이름</span><span>칸</span><span>순위</span>
+    </div>
+    <div id="race-sidebar-list"></div>
+  </div>
+  <div class="game-controls">
+    <button class="btn-small" id="btn-race-stop">중지 / 새 게임</button>
+    <button class="btn-small" id="btn-race-pause">일시정지</button>
+  </div>
+</div>
+
+<!-- ⑥ 펭귄 레이스 승자 화면 -->
+<div id="screen-race-winner" class="screen">
+  <canvas id="race-confetti-canvas"></canvas>
+  <div class="winner-main" style="position:relative;z-index:1;">
+    <div class="winner-box">
+      <div class="winner-trophy">🏆</div>
+      <div id="race-winner-name" class="winner-name">-</div>
+    </div>
+    <div class="clapping-penguins" id="clapping-penguins"></div>
+    <div class="winner-actions">
+      <button class="btn-winner primary" id="btn-race-replay">다시 하기</button>
+      <button class="btn-winner secondary" id="btn-race-new">새 게임</button>
+    </div>
+  </div>
+</div>
+
 <!-- ③ 당첨자 화면 -->
 <div id="screen-winner" class="screen">
   <canvas id="confetti-canvas"></canvas>
@@ -652,6 +800,13 @@
 
 <script>
 'use strict';
+
+function switchHomeTab(tab) {
+  document.getElementById('tab-escape').classList.toggle('active', tab === 'escape');
+  document.getElementById('tab-race').classList.toggle('active', tab === 'race');
+  document.getElementById('tab-content-escape').style.display = tab === 'escape' ? 'flex' : 'none';
+  document.getElementById('tab-content-race').style.display = tab === 'race' ? 'flex' : 'none';
+}
 
 // ─────────────────────────────────────────────
 //  CONFIG
@@ -1618,8 +1773,8 @@ function startGame(names) {
   startBGM();
 }
 
-// ── 빵빠레 + 한국어 음성 ─────────────────────────────────────────────────────
-function playWinnerSound(winnerName) {
+// ── 빵빠레 (공통) ───────────────────────────────────────────────────────────
+function playWinnerFanfare() {
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtx) return;
   const ctx = new AudioCtx();
@@ -1644,35 +1799,46 @@ function playWinnerSound(winnerName) {
     const osc    = ctx.createOscillator();
     const gain   = ctx.createGain();
     const filter = ctx.createBiquadFilter();
-
     osc.type = 'sawtooth';
     osc.frequency.value = freq;
-
     filter.type = 'lowpass';
     filter.frequency.value = 1800;
     filter.Q.value = 1.2;
-
     const t = ctx.currentTime + start;
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(vol, t + 0.025);
     gain.gain.setValueAtTime(vol, t + dur - 0.06);
     gain.gain.linearRampToValueAtTime(0, t + dur);
-
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(ctx.destination);
-
     osc.start(t);
     osc.stop(t + dur);
   });
+}
 
-  // 빵빠레(~3.15s) 끝난 후 한국어 음성 재생
+// ── 당첨자 사운드 (법인 빙고/쟁탈전) ────────────────────────────────────────
+function playWinnerSound(winnerName) {
+  playWinnerFanfare();
   setTimeout(() => {
     if (!window.speechSynthesis) return;
     const utter = new SpeechSynthesisUtterance(`${winnerName} 법인을 지워주세요.`);
     utter.lang  = 'ko-KR';
     utter.rate  = 0.88;
     utter.pitch = 1.0;
+    window.speechSynthesis.speak(utter);
+  }, 3200);
+}
+
+// ── 펭귄 레이스 우승 사운드 ──────────────────────────────────────────────────
+function playRaceWinnerSound(winnerName) {
+  playWinnerFanfare();
+  setTimeout(() => {
+    if (!window.speechSynthesis) return;
+    const utter = new SpeechSynthesisUtterance(`${winnerName} 우승!`);
+    utter.lang  = 'ko-KR';
+    utter.rate  = 0.85;
+    utter.pitch = 1.2;
     window.speechSynthesis.speak(utter);
   }, 3200);
 }
@@ -1762,6 +1928,454 @@ function stopConfetti() {
 }
 
 // ─────────────────────────────────────────────
+//  PENGUIN RACE
+// ─────────────────────────────────────────────
+const RACE_TILES = 30;
+const RACE_TILE_MOVE_MS = 2000;
+const RACE_ROLL_DISPLAY_MS = 1500;
+
+let raceState = {
+  penguins: [],
+  phase: 'idle',   // 'idle' | 'rolling' | 'moving' | 'done'
+  paused: false,
+  animId: null,
+  lastTs: 0,
+  lastNames: [],
+  tileSize: 80,
+  rowGap: 20,
+  padding: 12,
+  canvasW: 0,
+  canvasH: 0,
+};
+let raceCanvas, raceCtx, raceConfCanvas, raceConfCtx;
+let raceConfParticles = [];
+let raceConfAnimId = null;
+let raceTimerId = null;
+
+function resizeRaceCanvas() {
+  const sidebarW = 204;
+  const available = Math.min(window.innerWidth - sidebarW - 48, 900);
+  const ts = Math.max(50, Math.floor(available / 10));
+  const rg = Math.floor(ts * 0.30);
+  const pd = 14;
+  const cw = ts * 10 + pd * 2;
+  const ch = ts * 3 + rg * 2 + pd * 2;
+  raceCanvas.width  = cw;
+  raceCanvas.height = ch;
+  raceState.tileSize = ts;
+  raceState.rowGap   = rg;
+  raceState.padding  = pd;
+  raceState.canvasW  = cw;
+  raceState.canvasH  = ch;
+}
+
+// Returns pixel center {x, y} for integer tile 0..30+
+function getTileIntPos(tile) {
+  const { tileSize: ts, rowGap: rg, padding: pd, canvasH: ch } = raceState;
+  const y0 = ch - pd - ts / 2;      // row 0 bottom (tiles 1-10)
+  const y1 = y0 - ts - rg;          // row 1 middle (tiles 11-20)
+  const y2 = y1 - ts - rg;          // row 2 top    (tiles 21-30)
+
+  if (tile <= 0) return { x: pd, y: y0 };
+  if (tile <= 10) return { x: pd + (tile - 1) * ts + ts / 2, y: y0 };
+  if (tile <= 20) return { x: pd + (20 - tile) * ts + ts / 2, y: y1 };
+  if (tile <= 30) return { x: pd + (tile - 21) * ts + ts / 2, y: y2 };
+  // past finish: keep at tile 30 position
+  return { x: pd + 9 * ts + ts / 2, y: y2 };
+}
+
+// Interpolated pixel position for float displayPos
+function getPenguinPxPos(displayPos) {
+  const fromTile = Math.floor(displayPos);
+  const frac = displayPos - fromTile;
+  const from = getTileIntPos(fromTile);
+  const to   = getTileIntPos(fromTile + 1);
+  // ease-in-out
+  const t = frac < 0.5 ? 2 * frac * frac : 1 - 2 * (1 - frac) * (1 - frac);
+  return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t };
+}
+
+function makePenguin(name, color, idx) {
+  return { name, color, tile: 0, displayPos: 0, targetPos: 0, waddlePhase: idx * 0.7, diceRoll: 0 };
+}
+
+function startPenguinRace(names) {
+  raceState.lastNames = names;
+  raceState.phase = 'idle';
+  raceState.paused = false;
+  if (raceState.animId) { cancelAnimationFrame(raceState.animId); raceState.animId = null; }
+  if (raceTimerId)      { clearTimeout(raceTimerId); raceTimerId = null; }
+  raceConfParticles = [];
+  raceState.penguins = names.map((name, i) => makePenguin(name, PALETTE[i % PALETTE.length], i));
+  const btnPause = document.getElementById('btn-race-pause');
+  if (btnPause) btnPause.textContent = '일시정지';
+  resizeRaceCanvas();
+  showScreen('screen-race');
+  startBGM();
+  drawRaceFrame();
+  raceTimerId = setTimeout(() => doRaceRound(), 600);
+}
+
+function doRaceRound() {
+  if (raceState.phase === 'done') return;
+  raceState.penguins.forEach(p => {
+    p.diceRoll = Math.ceil(Math.random() * 6);
+    p.targetPos = p.tile + p.diceRoll;
+  });
+  raceState.phase = 'rolling';
+  drawRaceFrame();
+  raceTimerId = setTimeout(() => {
+    if (raceState.phase === 'done') return;
+    raceState.phase = 'moving';
+    raceState.lastTs = performance.now();
+    raceState.animId = requestAnimationFrame(raceMoveLoop);
+  }, RACE_ROLL_DISPLAY_MS);
+}
+
+function raceMoveLoop(ts) {
+  if (raceState.phase !== 'moving') return;
+  raceState.animId = requestAnimationFrame(raceMoveLoop);
+  if (raceState.paused) { raceState.lastTs = ts; return; }
+  const dt = Math.min(ts - raceState.lastTs, 50);
+  raceState.lastTs = ts;
+
+  raceState.penguins.forEach(p => {
+    if (p.displayPos < p.targetPos) {
+      p.waddlePhase += dt / 380 * Math.PI;
+      p.displayPos = Math.min(p.targetPos, p.displayPos + dt / RACE_TILE_MOVE_MS);
+    }
+  });
+
+  drawRaceFrame();
+  updateRaceSidebar();
+
+  const allDone = raceState.penguins.every(p => p.displayPos >= p.targetPos);
+  if (allDone) {
+    cancelAnimationFrame(raceState.animId);
+    raceState.animId = null;
+    raceState.penguins.forEach(p => { p.tile = Math.round(p.targetPos); });
+
+    const winners = raceState.penguins.filter(p => p.tile >= RACE_TILES);
+    if (winners.length > 0) {
+      raceState.phase = 'done';
+      const winner = winners.reduce((best, p) => p.tile > best.tile ? p : best, winners[0]);
+      raceTimerId = setTimeout(() => finishPenguinRace(winner), 500);
+    } else {
+      raceTimerId = setTimeout(() => doRaceRound(), 700);
+    }
+  }
+}
+
+// ── 트랙 & 펭귄 렌더링 ─────────────────────────────────────────────────────
+function pathRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawRaceFrame() {
+  if (!raceCanvas || !raceCtx) return;
+  const ctx = raceCtx;
+  const { canvasW: cw, canvasH: ch } = raceState;
+  ctx.clearRect(0, 0, cw, ch);
+
+  // Arctic background
+  const bg = ctx.createLinearGradient(0, 0, 0, ch);
+  bg.addColorStop(0,   '#091524');
+  bg.addColorStop(0.5, '#0c1f3a');
+  bg.addColorStop(1,   '#091524');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, cw, ch);
+
+  drawRaceTrack(ctx);
+  drawRacePenguins(ctx);
+  if (raceState.phase === 'rolling') drawDiceOverlay(ctx);
+}
+
+function drawRaceTrack(ctx) {
+  const { tileSize: ts, rowGap: rg, padding: pd, canvasH: ch } = raceState;
+  const y0 = ch - pd - ts / 2;
+  const y1 = y0 - ts - rg;
+  const y2 = y1 - ts - rg;
+  const numFontSz = Math.max(9, Math.floor(ts * 0.17));
+
+  for (let t = 1; t <= 30; t++) {
+    const pos = getTileIntPos(t);
+    const tx = pos.x - ts / 2 + 2;
+    const ty_row = (t <= 10 ? y0 : t <= 20 ? y1 : y2) - ts / 2 + 2;
+    const tw = ts - 4, th = ts - 4;
+
+    // Tile bg (alternating ice colors)
+    const even = (t % 2 === 0);
+    ctx.fillStyle = even ? 'rgba(160,215,255,0.18)' : 'rgba(120,185,240,0.10)';
+    pathRoundRect(ctx, tx, ty_row, tw, th, 8);
+    ctx.fill();
+
+    // Tile border
+    ctx.strokeStyle = 'rgba(140,200,255,0.28)';
+    ctx.lineWidth = 1;
+    pathRoundRect(ctx, tx, ty_row, tw, th, 8);
+    ctx.stroke();
+
+    // Highlight finish tile
+    if (t === 30) {
+      ctx.fillStyle = 'rgba(251,191,36,0.12)';
+      pathRoundRect(ctx, tx, ty_row, tw, th, 8);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(251,191,36,0.55)';
+      ctx.lineWidth = 2;
+      pathRoundRect(ctx, tx, ty_row, tw, th, 8);
+      ctx.stroke();
+    }
+
+    // Tile number
+    ctx.fillStyle = t === 30 ? 'rgba(251,191,36,0.7)' : 'rgba(160,220,255,0.45)';
+    ctx.font = `bold ${numFontSz}px 'Segoe UI', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(t, pos.x, ty_row + th - 1);
+  }
+
+  // START label
+  const s1 = getTileIntPos(1);
+  ctx.fillStyle = '#34d399';
+  ctx.font = `bold ${Math.floor(ts * 0.20)}px 'Segoe UI', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('▶ START', s1.x, y0 - ts / 2 - 4);
+
+  // FINISH label
+  const s30 = getTileIntPos(30);
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = `bold ${Math.floor(ts * 0.20)}px 'Segoe UI', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('🏁 FINISH', s30.x, y2 - ts / 2 - 4);
+
+  // Row-turn arrows (right side: row0→row1, left side: row1→row2)
+  const arrowSz = Math.max(10, Math.floor(ts * 0.22));
+  ctx.fillStyle = 'rgba(140,200,255,0.55)';
+  ctx.font = `${arrowSz}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const t10 = getTileIntPos(10);
+  const t20 = getTileIntPos(20);
+  ctx.fillText('↑', t10.x, (y0 + y1) / 2);
+  ctx.fillText('↑', t20.x, (y1 + y2) / 2);
+}
+
+function drawRacePenguins(ctx) {
+  const { tileSize: ts, penguins } = raceState;
+  const size = ts * 0.55;
+
+  // Group by integer tile for stacking offsets
+  const groups = {};
+  penguins.forEach((p, i) => {
+    const k = Math.floor(p.displayPos);
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(i);
+  });
+
+  penguins.forEach((p, i) => {
+    const pos = getPenguinPxPos(p.displayPos);
+    const moving = p.displayPos < p.targetPos;
+    const wobble = moving ? Math.sin(p.waddlePhase) * 0.22 : 0;
+    const bob    = moving ? -Math.abs(Math.sin(p.waddlePhase)) * size * 0.15 : 0;
+    const key    = Math.floor(p.displayPos);
+    const grp    = groups[key];
+    const gi     = grp.indexOf(i);
+    const xOff   = grp.length > 1 ? (gi - (grp.length - 1) / 2) * size * 0.55 : 0;
+    drawPenguin(ctx, pos.x + xOff, pos.y, size, p.color, wobble, bob, p.name);
+  });
+}
+
+function drawPenguin(ctx, x, y, size, color, wobble, bob, name) {
+  // 8-bit pixel art penguin (11 × 13 pixel grid)
+  // K=dark body, W=white belly, C=player color wings,
+  // #=orange beak/feet, E=eye white, P=pupil
+  const GRID = [
+    '..KKKKKKK..',
+    '.KKKKKKKKK.',
+    'KKWWWWWWWKK',
+    'KKWWEPEPWKK',
+    'KKWWWWWWWKK',
+    'KKWWW##WWKK',
+    'KCWWWWWWWCK',
+    'CCWWWWWWWCC',
+    'CCKKKKKKKCC',
+    '.CCKKKKKCC.',
+    '..KKKKKKK..',
+    '...OO.OO...',
+    '...OO.OO...',
+  ];
+  const COLORS = {
+    K: '#1a1a2e',
+    W: '#f0f4ff',
+    C: color,
+    '#': '#ff9500',
+    E: '#f5f5f5',
+    P: '#0d0d1a',
+  };
+
+  const ROWS = GRID.length;      // 13
+  const COLS = GRID[0].length;   // 11
+  const px = Math.max(2, Math.floor(size / ROWS));
+  const totalW = COLS * px;
+  const totalH = ROWS * px;
+
+  ctx.save();
+  ctx.translate(x, y + bob);
+  ctx.rotate(wobble);
+
+  // Drop shadow (draw dark semi-transparent copy offset)
+  ctx.globalAlpha = 0.25;
+  GRID.forEach((row, ri) => {
+    [...row].forEach((ch, ci) => {
+      if (ch === '.') return;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(-totalW / 2 + ci * px + 2, -totalH / 2 + ri * px + 3, px, px);
+    });
+  });
+  ctx.globalAlpha = 1;
+
+  // Actual pixels
+  GRID.forEach((row, ri) => {
+    [...row].forEach((ch, ci) => {
+      if (ch === '.') return;
+      ctx.fillStyle = COLORS[ch] ?? COLORS.K;
+      ctx.fillRect(-totalW / 2 + ci * px, -totalH / 2 + ri * px, px, px);
+    });
+  });
+
+  ctx.restore();
+
+  // Name label (below penguin)
+  if (name) {
+    const fz = Math.max(8, Math.min(13, px * 3.2));
+    ctx.font = `bold ${fz}px 'Segoe UI', 'Noto Sans KR', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+    ctx.strokeText(name, x, y + bob + totalH / 2 + 2);
+    ctx.fillStyle = color;
+    ctx.fillText(name, x, y + bob + totalH / 2 + 2);
+    ctx.textBaseline = 'alphabetic';
+  }
+}
+
+function drawDiceOverlay(ctx) {
+  const ts = raceState.tileSize;
+  const fz = Math.max(12, Math.floor(ts * 0.24));
+  raceState.penguins.forEach(p => {
+    const pos = getPenguinPxPos(p.displayPos);
+    const diceStr = `🎲 +${p.diceRoll}`;
+    ctx.font = `bold ${fz}px 'Segoe UI', sans-serif`;
+    const w = ctx.measureText(diceStr).width + 12;
+    const h = fz + 10;
+    const bx = pos.x - w / 2;
+    const by = pos.y - ts * 0.55 - h;
+    // Bubble bg
+    pathRoundRect(ctx, bx, by, w, h, 6);
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    pathRoundRect(ctx, bx, by, w, h, 6);
+    ctx.stroke();
+    // Text
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(diceStr, pos.x, by + h / 2);
+  });
+  ctx.textBaseline = 'alphabetic';
+}
+
+function updateRaceSidebar() {
+  const list = document.getElementById('race-sidebar-list');
+  if (!list) return;
+  const sorted = [...raceState.penguins].sort((a, b) => b.tile - a.tile || a.name.localeCompare(b.name, 'ko'));
+  let rank = 1;
+  sorted.forEach((p, i) => {
+    if (i > 0 && p.tile < sorted[i - 1].tile) rank = i + 1;
+    p._rank = rank;
+  });
+  list.innerHTML = sorted.map(p => {
+    const rc = p._rank <= 3 ? `rank-${p._rank}` : 'rank-other';
+    const tileColor = p.tile >= RACE_TILES ? '#34d399' : '#fbbf24';
+    return `<div class="sb-row" style="background:${p.color}18">
+      <span class="sb-name" title="${p.name}">${p.name}</span>
+      <span class="sb-rings" style="color:${tileColor}">${p.tile}</span>
+      <span class="sb-rank ${rc}">${p._rank}위</span>
+    </div>`;
+  }).join('');
+}
+
+function finishPenguinRace(winner) {
+  if (raceState.animId) { cancelAnimationFrame(raceState.animId); raceState.animId = null; }
+  stopBGM();
+  updateRaceSidebar();
+
+  document.getElementById('race-winner-name').textContent = winner.name;
+
+  // Clapping penguins
+  const clapping = document.getElementById('clapping-penguins');
+  const count = Math.max(4, Math.min(10, raceState.penguins.length + 2));
+  clapping.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('span');
+    el.className = 'clap-penguin';
+    el.textContent = '🐧';
+    el.style.animationDelay  = `${(i * 0.11).toFixed(2)}s`;
+    el.style.animationDuration = `${(0.38 + (i % 3) * 0.07).toFixed(2)}s`;
+    clapping.appendChild(el);
+  }
+
+  showScreen('screen-race-winner');
+  raceConfCanvas.width  = raceConfCanvas.offsetWidth;
+  raceConfCanvas.height = raceConfCanvas.offsetHeight;
+  raceConfParticles = [];
+  runRaceConfetti();
+  playRaceWinnerSound(winner.name);
+}
+
+function runRaceConfetti() {
+  const cw = raceConfCanvas.width, ch = raceConfCanvas.height;
+  raceConfCtx.clearRect(0, 0, cw, ch);
+  for (let i = 0; i < 6; i++) raceConfParticles.push(makeConfParticle(cw));
+  if (raceConfParticles.length > 300) raceConfParticles.splice(0, raceConfParticles.length - 300);
+  raceConfParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.rot += p.rotSpd;
+    if (p.y > ch * 0.8) p.alpha -= 0.02;
+  });
+  raceConfParticles = raceConfParticles.filter(p => p.alpha > 0 && p.y < ch + 20);
+  raceConfParticles.forEach(p => {
+    raceConfCtx.save();
+    raceConfCtx.globalAlpha = p.alpha;
+    raceConfCtx.translate(p.x, p.y);
+    raceConfCtx.rotate(p.rot * Math.PI / 180);
+    raceConfCtx.fillStyle = p.color;
+    raceConfCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    raceConfCtx.restore();
+  });
+  raceConfAnimId = requestAnimationFrame(runRaceConfetti);
+}
+
+function stopRaceConfetti() {
+  if (raceConfAnimId) { cancelAnimationFrame(raceConfAnimId); raceConfAnimId = null; }
+  raceConfParticles = [];
+  if (raceConfCtx && raceConfCanvas) raceConfCtx.clearRect(0, 0, raceConfCanvas.width, raceConfCanvas.height);
+}
+
+// ─────────────────────────────────────────────
 //  CANVAS SIZING
 // ─────────────────────────────────────────────
 function resizeCanvas() {
@@ -1789,6 +2403,8 @@ function setMode(mode) {
   state.mode = mode;
   const titleEl = document.getElementById('input-game-title');
   const descEl  = document.getElementById('input-game-desc');
+  const labelEl = document.querySelector('#screen-input .input-box label');
+  const badgeEl = document.getElementById('count-badge');
   if (mode === 'ranking') {
     if (titleEl) titleEl.textContent = '사이드 메뉴 쟁탈전';
     if (descEl) descEl.innerHTML =
@@ -1796,6 +2412,17 @@ function setMode(mode) {
       '2) 이전 원으로 돌아가는 환입 구역은 3곳 (주황색)<br>' +
       '3) 구역을 통과할 때마다 속도 증가<br>' +
       '4) 모든 법인이 탈출할 때까지 순위를 가립니다!';
+    if (labelEl) labelEl.textContent = '참가 법인명 (한 줄에 하나)';
+    if (badgeEl) badgeEl.textContent = '법인 수 0개';
+  } else if (mode === 'penguin-race') {
+    if (titleEl) titleEl.textContent = '펭귄 레이스';
+    if (descEl) descEl.innerHTML =
+      '1) 참가자 이름을 입력하면 나만의 펭귄 캐릭터가 생성됩니다<br>' +
+      '2) 남극 30칸 트랙에서 펭귄들이 출발!<br>' +
+      '3) 매 라운드 주사위(1~6)를 굴려 해당 칸 수만큼 이동<br>' +
+      '4) 가장 먼저 결승선을 통과한 펭귄이 우승!';
+    if (labelEl) labelEl.textContent = '참가자명 (한 줄에 하나)';
+    if (badgeEl) badgeEl.textContent = '참가자 수 0명';
   } else {
     if (titleEl) titleEl.textContent = '법인 빙고';
     if (descEl) descEl.innerHTML =
@@ -1803,6 +2430,8 @@ function setMode(mode) {
       '2) 이전 원으로 돌아가는 환입 구역은 3곳 (주황색)<br>' +
       '3) 구역을 통과할 때마다 속도 증가<br>' +
       '4) 가장 먼저 모든 원을 빠져나가는 법인 추첨!';
+    if (labelEl) labelEl.textContent = '참가 법인명 (한 줄에 하나)';
+    if (badgeEl) badgeEl.textContent = '법인 수 0개';
   }
 }
 
@@ -1821,6 +2450,10 @@ function initEvents() {
     setMode('ranking');
     showScreen('screen-input');
   });
+  document.getElementById('btn-mode-penguin-race').addEventListener('click', () => {
+    setMode('penguin-race');
+    showScreen('screen-input');
+  });
 
   // 뒤로 버튼
   document.getElementById('btn-back-home').addEventListener('click', () => {
@@ -1829,7 +2462,9 @@ function initEvents() {
 
   textarea.addEventListener('input', () => {
     const names = parseNames(textarea.value);
-    badge.textContent = `법인 수 ${names.length}개`;
+    badge.textContent = state.mode === 'penguin-race'
+      ? `참가자 수 ${names.length}명`
+      : `법인 수 ${names.length}개`;
     errorMsg.textContent = '';
     btnStart.disabled = names.length < 2;
   });
@@ -1837,10 +2472,16 @@ function initEvents() {
   btnStart.addEventListener('click', () => {
     const names = parseNames(textarea.value);
     if (names.length < 2) {
-      errorMsg.textContent = '법인을 2개 이상 입력해주세요.';
+      errorMsg.textContent = state.mode === 'penguin-race'
+        ? '참가자를 2명 이상 입력해주세요.'
+        : '법인을 2개 이상 입력해주세요.';
       return;
     }
-    startGame(names);
+    if (state.mode === 'penguin-race') {
+      startPenguinRace(names);
+    } else {
+      startGame(names);
+    }
   });
 
   document.getElementById('btn-stop').addEventListener('click', () => {
@@ -1892,6 +2533,42 @@ function initEvents() {
     showScreen('screen-home');
   });
 
+  // 펭귄 레이스 버튼
+  document.getElementById('btn-race-stop').addEventListener('click', () => {
+    if (raceState.animId) { cancelAnimationFrame(raceState.animId); raceState.animId = null; }
+    if (raceTimerId)      { clearTimeout(raceTimerId); raceTimerId = null; }
+    raceState.phase = 'done';
+    raceState.paused = false;
+    stopBGM();
+    showScreen('screen-home');
+  });
+
+  document.getElementById('btn-race-pause').addEventListener('click', () => {
+    raceState.paused = !raceState.paused;
+    const btn = document.getElementById('btn-race-pause');
+    btn.textContent = raceState.paused ? '재개' : '일시정지';
+    if (raceState.paused) {
+      stopBGM();
+    } else {
+      startBGM();
+      raceState.lastTs = performance.now();
+      if (raceState.phase === 'moving' && !raceState.animId) {
+        raceState.animId = requestAnimationFrame(raceMoveLoop);
+      }
+    }
+  });
+
+  document.getElementById('btn-race-replay').addEventListener('click', () => {
+    stopRaceConfetti();
+    startPenguinRace(raceState.lastNames);
+  });
+
+  document.getElementById('btn-race-new').addEventListener('click', () => {
+    stopRaceConfetti();
+    stopBGM();
+    showScreen('screen-home');
+  });
+
   window.addEventListener('resize', () => {
     if (state.phase === 'running') resizeCanvas();
   });
@@ -1901,10 +2578,15 @@ function initEvents() {
 //  INIT
 // ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  canvas    = document.getElementById('game-canvas');
-  ctx       = canvas.getContext('2d');
+  canvas     = document.getElementById('game-canvas');
+  ctx        = canvas.getContext('2d');
   confCanvas = document.getElementById('confetti-canvas');
-  confCtx   = confCanvas.getContext('2d');
+  confCtx    = confCanvas.getContext('2d');
+
+  raceCanvas     = document.getElementById('race-canvas');
+  raceCtx        = raceCanvas.getContext('2d');
+  raceConfCanvas = document.getElementById('race-confetti-canvas');
+  raceConfCtx    = raceConfCanvas.getContext('2d');
 
   resizeCanvas();
   initEvents();
