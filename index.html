@@ -1996,7 +1996,14 @@ function getPenguinPxPos(displayPos) {
 }
 
 function makePenguin(name, color, idx) {
-  return { name, color, tile: 0, displayPos: 0, targetPos: 0, waddlePhase: idx * 0.7, diceRoll: 0 };
+  return {
+    name, color,
+    tile: 0, displayPos: 0, targetPos: 0,
+    waddlePhase: idx * 0.7,
+    moving: false,
+    waitMs: 400 + idx * 180,  // staggered start
+    finished: false,
+  };
 }
 
 function startPenguinRace(names) {
@@ -2012,57 +2019,54 @@ function startPenguinRace(names) {
   resizeRaceCanvas();
   showScreen('screen-race');
   startBGM();
-  drawRaceFrame();
-  raceTimerId = setTimeout(() => doRaceRound(), 600);
-}
-
-function doRaceRound() {
-  if (raceState.phase === 'done') return;
-  raceState.penguins.forEach(p => {
-    p.diceRoll = Math.ceil(Math.random() * 6);
-    p.targetPos = p.tile + p.diceRoll;
-  });
-  raceState.phase = 'rolling';
-  drawRaceFrame();
-  raceTimerId = setTimeout(() => {
-    if (raceState.phase === 'done') return;
-    raceState.phase = 'moving';
-    raceState.lastTs = performance.now();
-    raceState.animId = requestAnimationFrame(raceMoveLoop);
-  }, RACE_ROLL_DISPLAY_MS);
+  raceState.lastTs = performance.now();
+  raceState.animId = requestAnimationFrame(raceMoveLoop);
 }
 
 function raceMoveLoop(ts) {
-  if (raceState.phase !== 'moving') return;
+  if (raceState.phase === 'done') return;
   raceState.animId = requestAnimationFrame(raceMoveLoop);
   if (raceState.paused) { raceState.lastTs = ts; return; }
   const dt = Math.min(ts - raceState.lastTs, 50);
   raceState.lastTs = ts;
 
+  let winner = null;
+
   raceState.penguins.forEach(p => {
-    if (p.displayPos < p.targetPos) {
+    if (p.finished) return;
+
+    if (p.moving) {
       p.waddlePhase += dt / 380 * Math.PI;
       p.displayPos = Math.min(p.targetPos, p.displayPos + dt / RACE_TILE_MOVE_MS);
+
+      if (p.displayPos >= p.targetPos) {
+        p.tile = Math.round(p.targetPos);
+        p.moving = false;
+        if (p.tile >= RACE_TILES) {
+          p.finished = true;
+          if (!winner) winner = p;
+        } else {
+          p.waitMs = 1000;
+        }
+      }
+    } else {
+      p.waitMs -= dt;
+      if (p.waitMs <= 0 && !winner) {
+        const roll = Math.ceil(Math.random() * 6);
+        p.targetPos = p.tile + roll;
+        p.moving = true;
+      }
     }
   });
 
   drawRaceFrame();
   updateRaceSidebar();
 
-  const allDone = raceState.penguins.every(p => p.displayPos >= p.targetPos);
-  if (allDone) {
+  if (winner) {
+    raceState.phase = 'done';
     cancelAnimationFrame(raceState.animId);
     raceState.animId = null;
-    raceState.penguins.forEach(p => { p.tile = Math.round(p.targetPos); });
-
-    const winners = raceState.penguins.filter(p => p.tile >= RACE_TILES);
-    if (winners.length > 0) {
-      raceState.phase = 'done';
-      const winner = winners.reduce((best, p) => p.tile > best.tile ? p : best, winners[0]);
-      raceTimerId = setTimeout(() => finishPenguinRace(winner), 500);
-    } else {
-      raceTimerId = setTimeout(() => doRaceRound(), 700);
-    }
+    setTimeout(() => finishPenguinRace(winner), 500);
   }
 }
 
@@ -2097,7 +2101,6 @@ function drawRaceFrame() {
 
   drawRaceTrack(ctx);
   drawRacePenguins(ctx);
-  if (raceState.phase === 'rolling') drawDiceOverlay(ctx);
 }
 
 function drawRaceTrack(ctx) {
@@ -2173,9 +2176,9 @@ function drawRaceTrack(ctx) {
 
 function drawRacePenguins(ctx) {
   const { tileSize: ts, penguins } = raceState;
-  const size = ts * 0.55;
+  const emojiSize = Math.max(16, Math.floor(ts * 0.52));
 
-  // Group by integer tile for stacking offsets
+  // Group by floor(displayPos) for stacking offsets
   const groups = {};
   penguins.forEach((p, i) => {
     const k = Math.floor(p.displayPos);
@@ -2185,90 +2188,36 @@ function drawRacePenguins(ctx) {
 
   penguins.forEach((p, i) => {
     const pos = getPenguinPxPos(p.displayPos);
-    const moving = p.displayPos < p.targetPos;
-    const wobble = moving ? Math.sin(p.waddlePhase) * 0.22 : 0;
-    const bob    = moving ? -Math.abs(Math.sin(p.waddlePhase)) * size * 0.15 : 0;
-    const key    = Math.floor(p.displayPos);
-    const grp    = groups[key];
+    const wobble = p.moving ? Math.sin(p.waddlePhase) * 0.25 : 0;
+    const bob    = p.moving ? -Math.abs(Math.sin(p.waddlePhase)) * emojiSize * 0.18 : 0;
+    const grp    = groups[Math.floor(p.displayPos)];
     const gi     = grp.indexOf(i);
-    const xOff   = grp.length > 1 ? (gi - (grp.length - 1) / 2) * size * 0.55 : 0;
-    drawPenguin(ctx, pos.x + xOff, pos.y, size, p.color, wobble, bob, p.name);
-  });
-}
+    const xOff   = grp.length > 1 ? (gi - (grp.length - 1) / 2) * emojiSize * 0.7 : 0;
+    const px = pos.x + xOff;
+    const py = pos.y + bob;
 
-function drawPenguin(ctx, x, y, size, color, wobble, bob, name) {
-  // 8-bit pixel art penguin (11 × 13 pixel grid)
-  // K=dark body, W=white belly, C=player color wings,
-  // #=orange beak/feet, E=eye white, P=pupil
-  const GRID = [
-    '..KKKKKKK..',
-    '.KKKKKKKKK.',
-    'KKWWWWWWWKK',
-    'KKWWEPEPWKK',
-    'KKWWWWWWWKK',
-    'KKWWW##WWKK',
-    'KCWWWWWWWCK',
-    'CCWWWWWWWCC',
-    'CCKKKKKKKCC',
-    '.CCKKKKKCC.',
-    '..KKKKKKK..',
-    '...OO.OO...',
-    '...OO.OO...',
-  ];
-  const COLORS = {
-    K: '#1a1a2e',
-    W: '#f0f4ff',
-    C: color,
-    '#': '#ff9500',
-    E: '#f5f5f5',
-    P: '#0d0d1a',
-  };
+    // Emoji penguin with wobble
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(wobble);
+    ctx.font = `${emojiSize}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🐧', 0, 0);
+    ctx.restore();
 
-  const ROWS = GRID.length;      // 13
-  const COLS = GRID[0].length;   // 11
-  const px = Math.max(2, Math.floor(size / ROWS));
-  const totalW = COLS * px;
-  const totalH = ROWS * px;
-
-  ctx.save();
-  ctx.translate(x, y + bob);
-  ctx.rotate(wobble);
-
-  // Drop shadow (draw dark semi-transparent copy offset)
-  ctx.globalAlpha = 0.25;
-  GRID.forEach((row, ri) => {
-    [...row].forEach((ch, ci) => {
-      if (ch === '.') return;
-      ctx.fillStyle = '#000';
-      ctx.fillRect(-totalW / 2 + ci * px + 2, -totalH / 2 + ri * px + 3, px, px);
-    });
-  });
-  ctx.globalAlpha = 1;
-
-  // Actual pixels
-  GRID.forEach((row, ri) => {
-    [...row].forEach((ch, ci) => {
-      if (ch === '.') return;
-      ctx.fillStyle = COLORS[ch] ?? COLORS.K;
-      ctx.fillRect(-totalW / 2 + ci * px, -totalH / 2 + ri * px, px, px);
-    });
-  });
-
-  ctx.restore();
-
-  // Name label (below penguin)
-  if (name) {
-    const fz = Math.max(8, Math.min(13, px * 3.2));
+    // Name label
+    const fz = Math.max(8, Math.min(13, emojiSize * 0.42));
     ctx.font = `bold ${fz}px 'Segoe UI', 'Noto Sans KR', sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.lineWidth = 3;
     ctx.strokeStyle = 'rgba(0,0,0,0.9)';
-    ctx.strokeText(name, x, y + bob + totalH / 2 + 2);
-    ctx.fillStyle = color;
-    ctx.fillText(name, x, y + bob + totalH / 2 + 2);
-    ctx.textBaseline = 'alphabetic';
-  }
+    ctx.strokeText(p.name, px, py + emojiSize * 0.58);
+    ctx.fillStyle = p.color;
+    ctx.fillText(p.name, px, py + emojiSize * 0.58);
+  });
+  ctx.textBaseline = 'alphabetic';
 }
 
 function drawDiceOverlay(ctx) {
