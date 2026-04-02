@@ -423,6 +423,17 @@
       line-height: 1.6;
     }
 
+    .mode-card-soon {
+      cursor: default;
+      opacity: 0.4;
+      filter: grayscale(1);
+    }
+    .mode-card-soon:hover {
+      transform: none;
+      border-color: rgba(255,255,255,0.1);
+      box-shadow: none;
+    }
+
     /* ── 뒤로 버튼 ── */
     .btn-back {
       position: absolute;
@@ -550,6 +561,11 @@
       <div class="mode-card-icon">🏆</div>
       <div class="mode-card-name">사이드 메뉴 쟁탈전</div>
       <div class="mode-card-desc">모든 법인이 탈출할 때까지<br>순위를 가립니다</div>
+    </div>
+    <div class="mode-card mode-card-soon">
+      <div class="mode-card-icon">🔒</div>
+      <div class="mode-card-name">COMING SOON</div>
+      <div class="mode-card-desc">준비 중입니다</div>
     </div>
   </div>
 </div>
