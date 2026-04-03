@@ -710,6 +710,12 @@
       <div class="mode-card-desc">뒤뚱뒤뚱 펭귄들의<br>순위 결정전</div>
       <div class="mode-card-tag">WINNER TAKES FIRST</div>
     </div>
+    <div class="mode-card" id="btn-mode-penguin-speed">
+      <div class="mode-card-icon">🐧</div>
+      <div class="mode-card-name">순위 결정전 (스피드)</div>
+      <div class="mode-card-desc">장애물 없이 순수하게<br>속도로 승부한다</div>
+      <div class="mode-card-tag">PURE SPEED</div>
+    </div>
   </div>
 </div>
 
@@ -2115,6 +2121,11 @@ function raceMoveLoop(ts) {
     if (raceState.obstacleTimer2 <= 0) { spawnObstacle(); raceState.obstacleTimer2 = null; }
   }
 
+  // ── 눈보라/파도/물고기/방패 (스피드 모드 제외) ──
+  if (state.mode === 'penguin-race-speed') {
+    // 스피드 모드: 새 이벤트 없음
+  } else {
+
   // ── 눈보라 타이머 ──
   raceState.blizzardTimer -= dt;
   if (raceState.blizzardTimer <= 0) {
@@ -2203,6 +2214,8 @@ function raceMoveLoop(ts) {
     }
   });
 
+  } // end: 스피드 모드 제외 블록
+
   // ── 장애물 애니메이션 & 충돌 판정 ──
   raceState.obstacles = raceState.obstacles.filter(ob => {
     ob.age += dt;
@@ -2273,6 +2286,15 @@ function raceMoveLoop(ts) {
           p.finishRank = raceState.penguins.filter(q => q.finished).length;
           if (!raceState.firstFinisher) raceState.firstFinisher = p;
           if (!winner) winner = p;
+          // 스피드 모드: 꼴찌 3마리 속도 1.2배 부스트
+          if (state.mode === 'penguin-race-speed') {
+            const alive = raceState.penguins
+              .filter(q => !q.finished)
+              .sort((a, b) => a.tile - b.tile); // 타일 낮은 순 = 꼴찌 순
+            alive.slice(0, 3).forEach(q => {
+              q.nextMoveMs = Math.max(300, q.nextMoveMs / 1.2);
+            });
+          }
         } else {
           const r = Math.random();
           if (r < RACE_FALL_CHANCE) {
@@ -2301,7 +2323,7 @@ function raceMoveLoop(ts) {
   drawRaceFrame();
   updateRaceSidebar();
 
-  const isRanking = state.mode === 'penguin-race-ranking';
+  const isRanking = state.mode === 'penguin-race-ranking' || state.mode === 'penguin-race-speed';
   const allDone = raceState.penguins.every(p => p.finished);
   if (raceState.firstFinisher && (!isRanking || allDone)) {
     raceState.phase = 'done';
@@ -2765,6 +2787,14 @@ function setMode(mode) {
       '3) 모든 펭귄이 결승선을 통과할 때까지 순위를 가립니다!';
     if (labelEl) labelEl.textContent = '참가자명 (한 줄에 하나)';
     if (badgeEl) badgeEl.textContent = '참가자 수 0명';
+  } else if (mode === 'penguin-race-speed') {
+    if (titleEl) titleEl.textContent = '순위 결정전 (스피드)';
+    if (descEl) descEl.innerHTML =
+      '1) 장애물·혜택 없이 순수 속도 대결<br>' +
+      '2) 이동선 도착 시 10% 확률로 넘어짐 (2초 기절)<br>' +
+      '3) 모든 펭귄이 결승선을 통과할 때까지 순위를 가립니다!';
+    if (labelEl) labelEl.textContent = '참가자명 (한 줄에 하나)';
+    if (badgeEl) badgeEl.textContent = '참가자 수 0명';
   } else {
     if (titleEl) titleEl.textContent = '법인 빙고';
     if (descEl) descEl.innerHTML =
@@ -2800,13 +2830,17 @@ function initEvents() {
     setMode('penguin-race-ranking');
     showScreen('screen-input');
   });
+  document.getElementById('btn-mode-penguin-speed').addEventListener('click', () => {
+    setMode('penguin-race-speed');
+    showScreen('screen-input');
+  });
 
   // 뒤로 버튼
   document.getElementById('btn-back-home').addEventListener('click', () => {
     showScreen('screen-home');
   });
 
-  const isPenguinMode = () => state.mode === 'penguin-race-first' || state.mode === 'penguin-race-ranking';
+  const isPenguinMode = () => state.mode === 'penguin-race-first' || state.mode === 'penguin-race-ranking' || state.mode === 'penguin-race-speed';
 
   textarea.addEventListener('input', () => {
     const names = parseNames(textarea.value);
