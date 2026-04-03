@@ -1947,7 +1947,8 @@ const RACE_LINES = 20;
 const RACE_FALL_MS = 2000;        // 넘어졌을 때 회복 시간
 const RACE_FALL_CHANCE = 0.10;    // 이동선 도착 시 넘어질 확률 10%
 const RACE_SLIDE_CHANCE = 0.05;   // 슬라이딩(2칸 동시 이동) 확률 5%
-const RACE_OBSTACLE_INTERVAL = 5000; // 장애물 등장 주기 (ms)
+const RACE_OBSTACLE_INTERVAL = 5000; // 첫 번째 장애물 등장 주기 (ms)
+const RACE_OBSTACLE_INTERVAL2 = 1000; // 두 번째 장애물 딜레이 (ms)
 const RACE_OBSTACLE_EMOJIS = ['🐋','🦭','🚢'];
 const RACE_OBSTACLE_STUN_MS = 2500;  // 장애물 기절 시간
 
@@ -2018,7 +2019,7 @@ function makePenguin(name, color, idx) {
     sliding: false,    // 슬라이딩 중 (2칸 이동)
     fallen: false,
     fallTimer: 0,
-    nextMoveMs: 2000 + Math.random() * 1000,
+    nextMoveMs: 1000 + Math.random() * 1000,
     moveProgress: 0,
     waitMs: 0,
     finished: false,
@@ -2036,6 +2037,7 @@ function startPenguinRace(names) {
   raceState.firstFinisher = null;
   raceState.obstacles = [];
   raceState.obstacleTimer = RACE_OBSTACLE_INTERVAL;
+  raceState.obstacleTimer2 = null; // 두 번째 장애물 딜레이
   raceState.penguins = names.map((name, i) => makePenguin(name, PALETTE[i % PALETTE.length], i));
   const btnPause = document.getElementById('btn-race-pause');
   if (btnPause) btnPause.textContent = '일시정지';
@@ -2055,8 +2057,9 @@ function spawnObstacle() {
   candidates.sort(() => Math.random() - 0.5);
   const line = candidates[0] ?? Math.floor(2 + Math.random() * (RACE_LINES - 2));
   const emoji = RACE_OBSTACLE_EMOJIS[Math.floor(Math.random() * RACE_OBSTACLE_EMOJIS.length)];
-  const hx = raceState.canvasW / 2;
   const holeW = Math.floor(raceState.canvasW * 0.09);
+  const pd = raceState.padding + holeW;
+  const hx = pd + Math.random() * (raceState.canvasW - pd * 2);
   raceState.obstacles.push({
     line,
     emoji,
@@ -2081,6 +2084,14 @@ function raceMoveLoop(ts) {
   if (raceState.obstacleTimer <= 0) {
     spawnObstacle();
     raceState.obstacleTimer = RACE_OBSTACLE_INTERVAL;
+    raceState.obstacleTimer2 = RACE_OBSTACLE_INTERVAL2; // 두 번째 예약
+  }
+  if (raceState.obstacleTimer2 !== null) {
+    raceState.obstacleTimer2 -= dt;
+    if (raceState.obstacleTimer2 <= 0) {
+      spawnObstacle();
+      raceState.obstacleTimer2 = null;
+    }
   }
 
   // ── 장애물 애니메이션 & 충돌 판정 ──
@@ -2291,10 +2302,10 @@ function drawRaceObstacles(ctx) {
     const travelY = ls * (1 - ease);  // 위 칸(ls 위)에서 현재 선까지
     const curY = baseY - ls + travelY;
 
-    // 얼음 구멍: 좌우 1/4 폭, 상하 2칸에 걸침
-    const holeW = Math.floor(cw * 0.09);  // 전체 폭의 9% (기존 18%의 절반)
-    const holeH = Math.floor(ls * 0.28);  // 타원 세로반경
-    const hx = cw / 2;
+    // 얼음 구멍: 장애물 저장된 위치 사용
+    const holeW = ob.holeW;
+    const holeH = Math.floor(ls * 0.28);
+    const hx = ob.hx;
 
     ctx.save();
     ctx.globalAlpha = ob.fadeProgress * ease * 0.85;
