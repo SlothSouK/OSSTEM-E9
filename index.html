@@ -1947,15 +1947,28 @@ const RACE_LINES = 20;
 const RACE_FALL_MS = 2000;        // 넘어졌을 때 회복 시간
 const RACE_FALL_CHANCE = 0.10;    // 이동선 도착 시 넘어질 확률 10%
 const RACE_SLIDE_CHANCE = 0.05;   // 슬라이딩(2칸 동시 이동) 확률 5%
-const RACE_OBSTACLE_INTERVAL = 5000; // 첫 번째 장애물 등장 주기 (ms)
+const RACE_OBSTACLE_INTERVAL = 5000;  // 첫 번째 장애물 등장 주기 (ms)
 const RACE_OBSTACLE_INTERVAL2 = 1000; // 두 번째 장애물 딜레이 (ms)
 const RACE_OBSTACLE_EMOJIS = ['🐋','🦭','🚢'];
-const RACE_OBSTACLE_STUN_MS = 2500;  // 장애물 기절 시간
+const RACE_BLIZZARD_INTERVAL = 3000;  // 눈보라 주기
+const RACE_WAVE_INTERVAL = 10000;     // 파도 주기
+const RACE_FISH_INTERVAL = 1500;      // 물고기 주기
+const RACE_SHIELD_INTERVAL = 2000;    // 얼음 방패 주기
+const RACE_BLIZZARD_MS = 3000;        // 눈보라 지속시간
+const RACE_SLOW_FACTOR = 2;           // 눈보라 이동속도 배율 (느리게)
 
 let raceState = {
   penguins: [],
-  obstacles: [],       // 활성 장애물 목록
-  obstacleTimer: 0,    // 다음 장애물까지 남은 ms
+  obstacles: [],       // 활성 장애물 목록 (구멍형)
+  blizzards: [],       // 활성 눈보라 목록
+  fishes: [],          // 활성 물고기 목록
+  shields: [],         // 활성 방패 목록
+  wave: null,          // 활성 파도 (하나)
+  obstacleTimer: 0,
+  blizzardTimer: 0,
+  waveTimer: 0,
+  fishTimer: 0,
+  shieldTimer: 0,
   phase: 'idle',
   paused: false,
   animId: null,
@@ -2016,9 +2029,12 @@ function makePenguin(name, color, idx) {
     laneX: 0,
     waddlePhase: idx * 0.7,
     moving: false,
-    sliding: false,    // 슬라이딩 중 (2칸 이동)
+    sliding: false,
     fallen: false,
     fallTimer: 0,
+    shielded: false,     // 얼음 방패 보유
+    slowed: false,       // 눈보라 감속 중
+    slowTimer: 0,
     nextMoveMs: 1000 + Math.random() * 1000,
     moveProgress: 0,
     waitMs: 0,
@@ -2036,8 +2052,16 @@ function startPenguinRace(names) {
   raceConfParticles = [];
   raceState.firstFinisher = null;
   raceState.obstacles = [];
+  raceState.blizzards = [];
+  raceState.fishes = [];
+  raceState.shields = [];
+  raceState.wave = null;
   raceState.obstacleTimer = RACE_OBSTACLE_INTERVAL;
-  raceState.obstacleTimer2 = null; // 두 번째 장애물 딜레이
+  raceState.obstacleTimer2 = null;
+  raceState.blizzardTimer = RACE_BLIZZARD_INTERVAL;
+  raceState.waveTimer = RACE_WAVE_INTERVAL;
+  raceState.fishTimer = RACE_FISH_INTERVAL;
+  raceState.shieldTimer = RACE_SHIELD_INTERVAL;
   raceState.penguins = names.map((name, i) => makePenguin(name, PALETTE[i % PALETTE.length], i));
   const btnPause = document.getElementById('btn-race-pause');
   if (btnPause) btnPause.textContent = '일시정지';
@@ -2079,20 +2103,105 @@ function raceMoveLoop(ts) {
   const dt = Math.min(ts - raceState.lastTs, 50);
   raceState.lastTs = ts;
 
-  // ── 장애물 타이머 ──
+  // ── 장애물(구멍) 타이머 ──
   raceState.obstacleTimer -= dt;
   if (raceState.obstacleTimer <= 0) {
     spawnObstacle();
     raceState.obstacleTimer = RACE_OBSTACLE_INTERVAL;
-    raceState.obstacleTimer2 = RACE_OBSTACLE_INTERVAL2; // 두 번째 예약
+    raceState.obstacleTimer2 = RACE_OBSTACLE_INTERVAL2;
   }
   if (raceState.obstacleTimer2 !== null) {
     raceState.obstacleTimer2 -= dt;
-    if (raceState.obstacleTimer2 <= 0) {
-      spawnObstacle();
-      raceState.obstacleTimer2 = null;
-    }
+    if (raceState.obstacleTimer2 <= 0) { spawnObstacle(); raceState.obstacleTimer2 = null; }
   }
+
+  // ── 눈보라 타이머 ──
+  raceState.blizzardTimer -= dt;
+  if (raceState.blizzardTimer <= 0) {
+    const bx = raceState.padding + Math.random() * (raceState.canvasW - raceState.padding * 2);
+    const bw = Math.floor(raceState.canvasW * 0.25 + Math.random() * raceState.canvasW * 0.2);
+    raceState.blizzards.push({ x: bx, w: bw, age: 0, lifeMs: RACE_BLIZZARD_MS });
+    raceState.blizzardTimer = RACE_BLIZZARD_INTERVAL;
+  }
+  raceState.blizzards = raceState.blizzards.filter(b => {
+    b.age += dt;
+    // 눈보라 영역 내 펭귄 감속
+    raceState.penguins.forEach(p => {
+      if (p.finished || p.fallen || p.shielded) return;
+      if (p.laneX >= b.x - b.w / 2 && p.laneX <= b.x + b.w / 2) {
+        p.slowed = true;
+        p.slowTimer = 500; // 눈보라 벗어나도 잠깐 유지
+      }
+    });
+    return b.age < b.lifeMs;
+  });
+
+  // ── 파도 타이머 ──
+  raceState.waveTimer -= dt;
+  if (raceState.waveTimer <= 0 && !raceState.wave) {
+    const wline = 1 + Math.floor(Math.random() * (RACE_LINES - 1));
+    raceState.wave = { line: wline, age: 0, lifeMs: 2000 };
+    raceState.waveTimer = RACE_WAVE_INTERVAL;
+  }
+  if (raceState.wave) {
+    raceState.wave.age += dt;
+    const w = raceState.wave;
+    const wEase = Math.min(1, w.age / 400);
+    if (wEase >= 1 && w.age < w.lifeMs - 400) {
+      // 파도 선 위 모든 펭귄 넘어짐
+      raceState.penguins.forEach(p => {
+        if (p.finished || p.fallen) return;
+        if (p.shielded) { p.shielded = false; return; } // 방패로 1회 막기
+        if (Math.abs(p.tile - w.line) <= 1) {
+          p.moving = false; p.moveProgress = 0;
+          p.fallen = true; p.fallTimer = RACE_FALL_MS;
+        }
+      });
+    }
+    if (raceState.wave.age >= raceState.wave.lifeMs) raceState.wave = null;
+  }
+
+  // ── 물고기 타이머 ──
+  raceState.fishTimer -= dt;
+  if (raceState.fishTimer <= 0) {
+    const fline = 1 + Math.floor(Math.random() * (RACE_LINES - 1));
+    const fx = raceState.padding + Math.random() * (raceState.canvasW - raceState.padding * 2);
+    raceState.fishes.push({ line: fline, x: fx, age: 0, lifeMs: 4000, collected: false });
+    raceState.fishTimer = RACE_FISH_INTERVAL;
+  }
+  raceState.fishes = raceState.fishes.filter(f => {
+    f.age += dt;
+    if (!f.collected) {
+      raceState.penguins.forEach(p => {
+        if (p.finished || f.collected) return;
+        if (p.tile === f.line && Math.abs(p.laneX - f.x) < 40) {
+          f.collected = true;
+          // 다음 2칸 2배 속도 (nextMoveMs 절반)
+          p.nextMoveMs = Math.max(300, p.nextMoveMs * 0.5);
+        }
+      });
+    }
+    return f.age < f.lifeMs && !f.collected;
+  });
+
+  // ── 방패 타이머 ──
+  raceState.shieldTimer -= dt;
+  if (raceState.shieldTimer <= 0) {
+    const alive = raceState.penguins.filter(p => !p.finished && !p.shielded);
+    if (alive.length) {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      target.shielded = true;
+    }
+    raceState.shieldTimer = RACE_SHIELD_INTERVAL;
+  }
+
+  // ── 펭귄 감속 타이머 업데이트 ──
+  raceState.penguins.forEach(p => {
+    if (p.slowed) {
+      p.slowTimer -= dt;
+      if (p.slowTimer <= 0) p.slowed = false;
+    }
+  });
 
   // ── 장애물 애니메이션 & 충돌 판정 ──
   raceState.obstacles = raceState.obstacles.filter(ob => {
@@ -2111,11 +2220,11 @@ function raceMoveLoop(ts) {
         const inLine = p.tile === ob.line || p.tile === ob.line - 1;
         const inX = Math.abs(p.laneX - ob.hx) <= ob.holeW;
         if (inLine && inX) {
+          if (p.shielded) { p.shielded = false; return; } // 방패로 1회 막기
           p.moving = false;
           p.moveProgress = 0;
           p.fallen = true;
           p.fallTimer = RACE_FALL_MS;
-          // 1칸 후퇴 (최소 0)
           p.tile = Math.max(0, p.tile - 1);
           p.displayPos = p.tile;
         }
@@ -2144,7 +2253,7 @@ function raceMoveLoop(ts) {
 
     // 이동 중
     if (p.moving) {
-      const speed = p.sliding ? p.nextMoveMs * 0.5 : p.nextMoveMs;
+      const speed = p.sliding ? p.nextMoveMs * 0.5 : (p.slowed ? p.nextMoveMs * RACE_SLOW_FACTOR : p.nextMoveMs);
       p.waddlePhase += dt / 380 * Math.PI;
       p.moveProgress += dt / speed;
       const steps = p.sliding ? 2 : 1;
@@ -2231,6 +2340,9 @@ function drawRaceFrame() {
   ctx.fillRect(0, 0, cw, ch);
 
   drawRaceTrack(ctx);
+  drawRaceBlizzards(ctx);
+  drawRaceWave(ctx);
+  drawRaceFishes(ctx);
   drawRaceObstacles(ctx);
   drawRacePenguins(ctx);
 }
@@ -2290,6 +2402,94 @@ function drawRaceTrack(ctx) {
   ctx.textBaseline = 'top';
   ctx.fillStyle = '#fbbf24';
   ctx.fillText('🏁 FINISH', cw / 2, y30 + 4);
+}
+
+function drawRaceBlizzards(ctx) {
+  const { canvasH: ch } = raceState;
+  raceState.blizzards.forEach(b => {
+    const fadeMs = 500;
+    const alpha = b.age < fadeMs
+      ? b.age / fadeMs
+      : b.age > b.lifeMs - fadeMs
+        ? (b.lifeMs - b.age) / fadeMs
+        : 1;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.32;
+    const grd = ctx.createLinearGradient(b.x - b.w / 2, 0, b.x + b.w / 2, 0);
+    grd.addColorStop(0, 'transparent');
+    grd.addColorStop(0.2, '#a8d8ff');
+    grd.addColorStop(0.8, '#a8d8ff');
+    grd.addColorStop(1, 'transparent');
+    ctx.fillStyle = grd;
+    ctx.fillRect(b.x - b.w / 2, 0, b.w, ch);
+    // 눈송이 파티클 효과
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < 6; i++) {
+      const px = b.x - b.w / 2 + (b.w / 7) * (i + 1);
+      const py = ((Date.now() / 800 + i * 0.7) % 1) * ch;
+      ctx.fillText('❄️', px, py);
+    }
+    ctx.restore();
+  });
+}
+
+function drawRaceWave(ctx) {
+  if (!raceState.wave) return;
+  const w = raceState.wave;
+  const { canvasW: cw, lineSpacing: ls } = raceState;
+  const ease = Math.min(1, w.age / 400);
+  const fadeOut = w.age > w.lifeMs - 400 ? (w.lifeMs - w.age) / 400 : 1;
+  const alpha = ease * fadeOut;
+  const y = getLinePxY(w.line);
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.85;
+  // 파도 그라디언트
+  const grd = ctx.createLinearGradient(0, y - ls, 0, y + ls);
+  grd.addColorStop(0, 'transparent');
+  grd.addColorStop(0.4, 'rgba(56,189,248,0.55)');
+  grd.addColorStop(0.6, 'rgba(56,189,248,0.55)');
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, y - ls, cw, ls * 2);
+  // 파도 이모지
+  const sz = Math.floor(ls * 1.0);
+  ctx.font = `${sz}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.globalAlpha = alpha;
+  const waveX = ((Date.now() / 600) % 1) * cw;
+  for (let i = -1; i <= 2; i++) {
+    ctx.fillText('🌊', waveX + i * cw, y);
+  }
+  ctx.restore();
+}
+
+function drawRaceFishes(ctx) {
+  const { lineSpacing: ls } = raceState;
+  const sz = Math.floor(ls * 0.75);
+  raceState.fishes.forEach(f => {
+    const y = getLinePxY(f.line);
+    const bob = Math.sin(Date.now() / 300 + f.x) * 5;
+    const fadeMs = 500;
+    const alpha = f.age < fadeMs ? f.age / fadeMs : f.age > f.lifeMs - fadeMs ? (f.lifeMs - f.age) / fadeMs : 1;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `${sz}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🐟', f.x, y + bob);
+    // 빛나는 효과
+    ctx.globalAlpha = alpha * 0.4 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
+    ctx.beginPath();
+    ctx.arc(f.x, y + bob, sz * 0.7, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(253,224,71,0.5)';
+    ctx.fill();
+    ctx.restore();
+  });
 }
 
 function drawRaceObstacles(ctx) {
@@ -2384,6 +2584,16 @@ function drawRacePenguins(ctx) {
       ctx.restore();
     }
 
+    // 방패 / 감속 아이콘
+    if (p.shielded || p.slowed) {
+      const iconSz = Math.floor(emojiSize * 0.5);
+      ctx.font = `${iconSz}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.globalAlpha = 1;
+      ctx.fillText(p.shielded ? '🛡️' : '🌨️', x, y - emojiSize * 0.6);
+    }
+
     // 이름 레이블
     const fz = Math.max(8, Math.min(13, emojiSize * 0.48));
     ctx.globalAlpha = 1;
@@ -2416,8 +2626,8 @@ function updateRaceSidebar() {
 
   list.innerHTML = sorted.map(p => {
     const rc = p._rank <= 3 ? `rank-${p._rank}` : 'rank-other';
-    const lineColor = p.finished ? '#34d399' : (p.fallen ? '#f87171' : '#fbbf24');
-    const status = p.finished ? `🏁 ${p.finishRank}위` : p.fallen ? '넘어짐' : `${p.tile}선`;
+    const lineColor = p.finished ? '#34d399' : p.fallen ? '#f87171' : p.slowed ? '#93c5fd' : p.shielded ? '#a78bfa' : '#fbbf24';
+    const status = p.finished ? `🏁 ${p.finishRank}위` : p.fallen ? '넘어짐' : p.slowed ? '🌨️감속' : p.shielded ? '🛡️보호' : `${p.tile}선`;
     return `<div class="sb-row" style="background:${p.color}18">
       <span class="sb-name" title="${p.name}">${p.name}</span>
       <span class="sb-rings" style="color:${lineColor}">${status}</span>
