@@ -2092,6 +2092,12 @@ function getPenguinPxY(p) {
   return fromY + (toY - fromY) * t;
 }
 
+function randomMoveMs() {
+  return state.mode === 'penguin-race-speed'
+    ? 500 + Math.random() * 500
+    : 500 + Math.random() * 1200;
+}
+
 function makePenguin(name, color, idx) {
   return {
     name, color, idx,
@@ -2106,7 +2112,7 @@ function makePenguin(name, color, idx) {
     shielded: false,     // 얼음 방패 보유
     slowed: false,       // 눈보라 감속 중
     slowTimer: 0,
-    nextMoveMs: 500 + Math.random() * 500,
+    nextMoveMs: randomMoveMs(),
     moveProgress: 0,
     waitMs: 0,
     finished: false,
@@ -2324,7 +2330,7 @@ function raceMoveLoop(ts) {
         p.fallen = false;
         p.moving = true;
         p.moveProgress = 0;
-        p.nextMoveMs = 2000 + Math.random() * 1000;
+        p.nextMoveMs = randomMoveMs();
       }
       return;
     }
@@ -2368,10 +2374,10 @@ function raceMoveLoop(ts) {
           } else if (r < RACE_FALL_CHANCE + RACE_SLIDE_CHANCE) {
             p.sliding = true;
             p.moving = true;
-            p.nextMoveMs = 2000 + Math.random() * 1000;
+            p.nextMoveMs = randomMoveMs();
           } else {
             p.moving = true;
-            p.nextMoveMs = 2000 + Math.random() * 1000;
+            p.nextMoveMs = randomMoveMs();
           }
         }
       }
@@ -2380,7 +2386,7 @@ function raceMoveLoop(ts) {
       if (p.waitMs <= 0) {
         p.moving = true;
         p.moveProgress = 0;
-        p.nextMoveMs = 2000 + Math.random() * 1000;
+        p.nextMoveMs = randomMoveMs();
       }
     }
   });

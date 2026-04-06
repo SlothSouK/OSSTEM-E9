@@ -96,7 +96,7 @@
     /* ── 이름 입력 화면 ── */
     #screen-input {
       flex-direction: row;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
       gap: 32px;
       width: 90%;
@@ -639,6 +639,12 @@ function getPenguinPxY(p) {
   return fromY + (toY - fromY) * t;
 }
 
+function randomMoveMs() {
+  return state.mode === 'penguin-race-speed'
+    ? 500 + Math.random() * 500
+    : 500 + Math.random() * 1200;
+}
+
 function makePenguin(name, color, idx) {
   return {
     name, color, idx,
@@ -653,7 +659,7 @@ function makePenguin(name, color, idx) {
     shielded: false,
     slowed: false,
     slowTimer: 0,
-    nextMoveMs: 500 + Math.random() * 500,
+    nextMoveMs: randomMoveMs(),
     moveProgress: 0,
     waitMs: 0,
     finished: false,
@@ -861,7 +867,7 @@ function raceMoveLoop(ts) {
         p.fallen = false;
         p.moving = true;
         p.moveProgress = 0;
-        p.nextMoveMs = 500 + Math.random() * 500;
+        p.nextMoveMs = randomMoveMs();
       }
       return;
     }
@@ -903,10 +909,10 @@ function raceMoveLoop(ts) {
           } else if (r < RACE_FALL_CHANCE + RACE_SLIDE_CHANCE) {
             p.sliding = true;
             p.moving = true;
-            p.nextMoveMs = 500 + Math.random() * 500;
+            p.nextMoveMs = randomMoveMs();
           } else {
             p.moving = true;
-            p.nextMoveMs = 500 + Math.random() * 500;
+            p.nextMoveMs = randomMoveMs();
           }
         }
       }
@@ -915,7 +921,7 @@ function raceMoveLoop(ts) {
       if (p.waitMs <= 0) {
         p.moving = true;
         p.moveProgress = 0;
-        p.nextMoveMs = 500 + Math.random() * 500;
+        p.nextMoveMs = randomMoveMs();
       }
     }
   });
