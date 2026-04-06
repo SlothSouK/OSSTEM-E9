@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>신나게 달리는 다이내믹 레이스</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d1a;
+      color: #fff;
+      font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .screen { display: none; width: 100%; height: 100vh; align-items: center; justify-content: center; }
+    .screen.active { display: flex; }
+
+    /* ── 홈 화면 ── */
+    #screen-home {
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+      overflow-y: auto;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+    .home-title {
+      text-align: center;
+    }
+    .home-title h1 {
+      font-size: 2.6rem;
+      font-weight: 900;
+      background: linear-gradient(90deg, #ff8c00, #ff5500, #2563eb, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    .home-title p {
+      color: #6b7280;
+      font-size: 0.95rem;
+    }
+    .mode-cards {
+      display: flex;
+      gap: 20px;
+      flex-wrap: nowrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 820px;
+    }
+    .mode-card {
+      flex: 1;
+      min-width: 0;
+      padding: 32px 16px;
+      background: rgba(13,13,26,0.9);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+      text-align: center;
+      backdrop-filter: blur(6px);
+    }
+    .mode-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(124,58,237,0.6);
+      box-shadow: 0 8px 32px rgba(124,58,237,0.25);
+    }
+    .mode-card-icon { font-size: 3rem; margin-bottom: 16px; }
+    .mode-card-name {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #e5e7eb;
+      margin-bottom: 10px;
+    }
+    .mode-card-desc {
+      font-size: 0.82rem;
+      color: #ffffff;
+      line-height: 1.6;
+    }
+    .mode-card-tag {
+      margin-top: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #ff8c00;
+      opacity: 0.75;
+    }
+
+    /* ── 이름 입력 화면 ── */
+    #screen-input {
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      width: 90%;
+      max-width: 900px;
+    }
+    #screen-input-main {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 480px;
+      width: 100%;
+    }
+    #penguin-legend {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 200px;
+      max-width: 240px;
+      background: rgba(13,13,26,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px 14px;
+      backdrop-filter: blur(6px);
+      align-self: center;
+    }
+    #penguin-legend .legend-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+    #penguin-legend .legend-sep {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 6px 0;
+    }
+    #penguin-legend .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: #d1d5db;
+      line-height: 1.4;
+    }
+    #penguin-legend .legend-icon { font-size: 1.1rem; min-width: 22px; text-align: center; }
+
+    .title { text-align: center; }
+    .title h1 {
+      font-size: 2.0rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #ff8c00, #2563eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+    .title p {
+      color: #ffffff;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      text-align: left;
+    }
+
+    .input-box {
+      background: #1a1a2e;
+      border: 1px solid #2d2d4e;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .input-box label {
+      display: block;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    textarea {
+      width: 100%;
+      height: 180px;
+      background: #0d0d1a;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      color: #e5e7eb;
+      font-size: 1rem;
+      padding: 10px 12px;
+      resize: none;
+      font-family: inherit;
+      line-height: 1.8;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: #7c3aed; }
+    textarea::placeholder { color: #4b5563; }
+
+    .count-badge {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: #60a5fa;
+    }
+
+    .btn-start {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #ff8c00, #2563eb);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.05em;
+    }
+    .btn-start:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-start:active { transform: translateY(0); }
+    .btn-start:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .error-msg {
+      color: #f87171;
+      font-size: 0.85rem;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    /* ── 뒤로 버튼 ── */
+    .btn-back {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      color: #9ca3af;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.13); color: #e5e7eb; }
+
+    /* ── 펭귄 레이스 게임 화면 ── */
+    #screen-race {
+      position: relative;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 16px;
+      overflow-y: auto;
+      padding: 12px 0;
+    }
+    #race-canvas {
+      display: block;
+      flex-shrink: 0;
+      border-radius: 12px;
+    }
+    #race-sidebar {
+      width: 188px;
+      max-height: 94vh;
+      background: rgba(13,13,26,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 10px 8px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      backdrop-filter: blur(6px);
+    }
+    #race-sidebar::-webkit-scrollbar { width: 4px; }
+    #race-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+    .game-controls {
+      position: absolute;
+      top: 16px;
+      right: 220px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-small {
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: #e5e7eb;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      backdrop-filter: blur(4px);
+    }
+    .btn-small:hover { background: rgba(255,255,255,0.15); }
+
+    .sidebar-header {
+      display: grid;
+      grid-template-columns: 1fr 28px 44px;
+      gap: 4px;
+      font-size: 0.68rem;
+      color: #6b7280;
+      padding: 0 4px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 6px;
+      letter-spacing: 0.03em;
+    }
+    .sidebar-header span:nth-child(2),
+    .sidebar-header span:nth-child(3) { text-align: center; }
+
+    .sb-row {
+      display: grid;
+      grid-template-columns: 1fr 28px 44px;
+      gap: 4px;
+      align-items: center;
+      padding: 3px 4px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      margin-bottom: 2px;
+      transition: opacity 0.3s;
+    }
+    .sb-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #e5e7eb;
+    }
+    .sb-rings {
+      text-align: center;
+      font-weight: 700;
+      color: #fbbf24;
+    }
+    .sb-rank {
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.72rem;
+    }
+    .sb-rank.rank-1 { color: #fbbf24; }
+    .sb-rank.rank-2 { color: #d1d5db; }
+    .sb-rank.rank-3 { color: #fb923c; }
+    .sb-rank.rank-other { color: #6b7280; }
+
+    /* ── 펭귄 레이스 승자 화면 ── */
+    #screen-race-winner {
+      position: relative;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      text-align: center;
+      overflow-y: auto;
+      padding: 24px 16px;
+    }
+    #race-confetti-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .winner-main {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .winner-box {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .winner-trophy {
+      font-size: 4rem;
+      animation: bounce 0.8s ease infinite alternate;
+    }
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-12px); }
+    }
+    .winner-name {
+      font-size: 3.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b, #fcd34d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      padding: 0 20px;
+    }
+    .winner-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 12px;
+    }
+    .clapping-penguins {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 520px;
+      position: relative;
+      z-index: 1;
+      padding: 8px 0;
+    }
+    .clap-penguin {
+      font-size: 2.8rem;
+      display: inline-block;
+      animation: clap 0.5s ease-in-out infinite alternate;
+    }
+    @keyframes clap {
+      from { transform: rotate(-18deg) translateY(0); }
+      to   { transform: rotate(18deg) translateY(-10px); }
+    }
+    .btn-winner {
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      border: none;
+    }
+    .btn-winner:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn-winner.primary {
+      background: linear-gradient(135deg, #ff8c00, #2563eb);
+      color: #fff;
+    }
+    .btn-winner.secondary {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #e5e7eb;
+    }
+
+    /* ── 모바일 반응형 ── */
+    @media (max-width: 768px) {
+      body { overflow-y: auto; align-items: flex-start; }
+
+      /* 홈 화면 */
+      #screen-home { gap: 24px; padding: 24px 16px; }
+      .home-title h1 { font-size: 1.6rem; }
+      .mode-cards { flex-direction: column; flex-wrap: wrap; gap: 12px; max-width: 100%; }
+      .mode-card { padding: 20px 16px; min-width: unset; }
+      .mode-card-icon { font-size: 2.2rem; margin-bottom: 10px; }
+      .mode-card-name { font-size: 1.1rem; }
+
+      /* 입력 화면 */
+      #screen-input {
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        padding: 60px 16px 24px;
+        overflow-y: auto;
+        gap: 16px;
+      }
+      #screen-input-main { max-width: 100%; }
+      #penguin-legend {
+        display: flex !important;
+        min-width: unset;
+        max-width: 100%;
+        width: 100%;
+      }
+      .title h1 { font-size: 1.5rem; }
+      textarea { height: 140px; font-size: 0.95rem; }
+
+      /* 레이스 화면 */
+      #screen-race {
+        flex-direction: column;
+        align-items: center;
+        padding: 50px 8px 12px;
+        gap: 8px;
+        overflow-y: auto;
+      }
+      #race-sidebar {
+        width: 100%;
+        max-height: 180px;
+        order: 2;
+        font-size: 0.75rem;
+      }
+      #race-canvas { order: 1; width: 100% !important; }
+      .game-controls {
+        position: fixed;
+        top: 8px;
+        right: 8px;
+        left: 8px;
+        justify-content: flex-end;
+        z-index: 100;
+      }
+      .btn-small { font-size: 0.75rem; padding: 6px 10px; }
+      .btn-back { top: 12px; left: 12px; }
+
+      /* 승자 화면 */
+      #screen-race-winner { padding: 16px; overflow-y: auto; }
+      #race-winner-layout {
+        flex-direction: column !important;
+        gap: 16px !important;
+      }
+      .winner-name { font-size: 2.2rem; }
+      .winner-trophy { font-size: 3rem; }
+      .clap-penguin { font-size: 2rem; }
+      #race-full-ranking { max-width: 100% !important; min-width: unset !important; width: 100%; }
+    }
+
+    @media (max-width: 480px) {
+      .home-title h1 { font-size: 1.3rem; }
+      .mode-card-name { font-size: 1rem; }
+      .winner-name { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ① 홈 화면 — 모드 선택 -->
+<div id="screen-home" class="screen active">
+  <div class="home-title">
+    <h1>신나게 달리는 다이내믹 레이스</h1>
+    <p>게임 모드를 선택하세요</p>
+  </div>
+  <div class="mode-cards">
+    <div class="mode-card" id="btn-mode-penguin-first">
+      <div class="mode-card-icon">🐧</div>
+      <div class="mode-card-name">1위 결정전</div>
+      <div class="mode-card-desc">가장 먼저 결승선을 통과한<br>펭귄이 우승!</div>
+      <div class="mode-card-tag">WINNER TAKES ALL</div>
+    </div>
+    <div class="mode-card" id="btn-mode-penguin-ranking">
+      <div class="mode-card-icon">🐧</div>
+      <div class="mode-card-name">순위 결정전</div>
+      <div class="mode-card-desc">뒤뚱뒤뚱 펭귄들의<br>순위 결정전</div>
+      <div class="mode-card-tag">WINNER TAKES FIRST</div>
+    </div>
+    <div class="mode-card" id="btn-mode-penguin-speed">
+      <div class="mode-card-icon">🐧</div>
+      <div class="mode-card-name">순위 결정전 (스피드)</div>
+      <div class="mode-card-desc">장애물 없이 순수하게<br>속도로 승부한다</div>
+      <div class="mode-card-tag">PURE SPEED</div>
+    </div>
+  </div>
+</div>
+
+<!-- ② 이름 입력 화면 -->
+<div id="screen-input" class="screen" style="position:relative;">
+  <div id="screen-input-main">
+    <button class="btn-back" id="btn-back-home">← 뒤로</button>
+    <div class="title">
+      <h1><span id="input-game-title">1위 결정전</span></h1>
+      <p id="input-game-desc"></p>
+    </div>
+    <div class="input-box">
+      <label>참가자명 (한 줄에 하나)</label>
+      <textarea id="names-input" placeholder="홍길동&#10;김철수&#10;이영희&#10;박지민&#10;..."></textarea>
+      <div class="count-badge" id="count-badge">참가자 수 0명</div>
+    </div>
+    <div class="error-msg" id="error-msg"></div>
+    <button class="btn-start" id="btn-start" disabled>게임 시작</button>
+  </div>
+  <div id="penguin-legend">
+    <div class="legend-title">⚠️ 장애물</div>
+    <div class="legend-row"><span class="legend-icon">🐋</span><span>얼음 구멍 — 맞으면 넘어짐 + 1칸 후퇴</span></div>
+    <div class="legend-row"><span class="legend-icon">🦭</span><span>얼음 구멍 — 맞으면 넘어짐 + 1칸 후퇴</span></div>
+    <div class="legend-row"><span class="legend-icon">🚢</span><span>얼음 구멍 — 맞으면 넘어짐 + 1칸 후퇴</span></div>
+    <div id="legend-extra">
+      <hr class="legend-sep">
+      <div class="legend-title">🌪️ 환경 이벤트</div>
+      <div class="legend-row"><span class="legend-icon">🌨️</span><span>눈보라 — 구간 내 이동속도 절반</span></div>
+      <div class="legend-row"><span class="legend-icon">🌊</span><span>파도 — 주변 펭귄 전부 넘어짐</span></div>
+      <hr class="legend-sep">
+      <div class="legend-title">✨ 아이템</div>
+      <div class="legend-row"><span class="legend-icon">🐟</span><span>물고기 — 획득 시 2배 속도</span></div>
+      <div class="legend-row"><span class="legend-icon">🛡️</span><span>방패 — 장애물/파도 1회 무효화</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ③ 펭귄 레이스 게임 화면 -->
+<div id="screen-race" class="screen">
+  <canvas id="race-canvas"></canvas>
+  <div id="race-sidebar">
+    <div class="sidebar-header">
+      <span>이름</span><span>선</span><span>순위</span>
+    </div>
+    <div id="race-sidebar-list"></div>
+  </div>
+  <div class="game-controls">
+    <button class="btn-small" id="btn-race-stop">중지 / 새 게임</button>
+    <button class="btn-small" id="btn-race-pause">일시정지</button>
+  </div>
+</div>
+
+<!-- ④ 펭귄 레이스 승자 화면 -->
+<div id="screen-race-winner" class="screen">
+  <canvas id="race-confetti-canvas"></canvas>
+  <div id="race-winner-layout" style="position:relative;z-index:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:40px;width:100%;max-width:900px;">
+    <div class="winner-main">
+      <div class="winner-box">
+        <div class="winner-trophy">🏆</div>
+        <div id="race-winner-name" class="winner-name">-</div>
+      </div>
+      <div class="clapping-penguins" id="clapping-penguins"></div>
+      <div class="winner-actions">
+        <button class="btn-winner primary" id="btn-race-replay">다시 하기</button>
+        <button class="btn-winner secondary" id="btn-race-new">새 게임</button>
+      </div>
+    </div>
+    <div id="race-full-ranking" style="display:none;min-width:220px;max-width:300px;background:rgba(13,13,26,0.85);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────
+//  CONSTANTS
+// ─────────────────────────────────────────────
+const PALETTE = [
+  '#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7',
+  '#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9',
+  '#F0B27A','#82E0AA','#F1948A','#AED6F1','#A9DFBF',
+  '#FAD7A0','#D2B4DE','#A3E4D7','#FFB347','#B0E0E6',
+];
+
+const CONFETTI_COLORS = [
+  '#ff0000','#ff7700','#ffff00','#00ff00','#0077ff',
+  '#8800ff','#ff00ff','#00ffff','#ffffff','#ffd700',
+];
+
+// ─────────────────────────────────────────────
+//  GLOBAL STATE
+// ─────────────────────────────────────────────
+let state = { mode: 'penguin-race-first' };
+
+// ─────────────────────────────────────────────
+//  PENGUIN RACE
+// ─────────────────────────────────────────────
+const RACE_LINES = 20;
+const RACE_FALL_MS = 2000;
+const RACE_FALL_CHANCE = 0.10;
+const RACE_SLIDE_CHANCE = 0.05;
+const RACE_OBSTACLE_INTERVAL = 5000;
+const RACE_OBSTACLE_INTERVAL2 = 1000;
+const RACE_OBSTACLE_EMOJIS = ['🐋','🦭','🚢'];
+const RACE_BLIZZARD_INTERVAL = 3000;
+const RACE_WAVE_INTERVAL = 10000;
+const RACE_FISH_INTERVAL = 1500;
+const RACE_SHIELD_INTERVAL = 2000;
+const RACE_BLIZZARD_MS = 3000;
+const RACE_SLOW_FACTOR = 2;
+
+let raceState = {
+  penguins: [],
+  obstacles: [],
+  blizzards: [],
+  fishes: [],
+  shields: [],
+  wave: null,
+  obstacleTimer: 0,
+  blizzardTimer: 0,
+  waveTimer: 0,
+  fishTimer: 0,
+  shieldTimer: 0,
+  phase: 'idle',
+  paused: false,
+  animId: null,
+  lastTs: 0,
+  lastNames: [],
+  lineSpacing: 0,
+  padding: 20,
+  canvasW: 0,
+  canvasH: 0,
+};
+let raceCanvas, raceCtx, raceConfCanvas, raceConfCtx;
+let raceConfParticles = [];
+let raceConfAnimId = null;
+let raceTimerId = null;
+
+function resizeRaceCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const isMobile = window.innerWidth <= 768;
+  const pd = 20;
+  let cw, ch, ls;
+  if (isMobile) {
+    cw = Math.min(window.innerWidth - 16, 600);
+    const availH = Math.max(300, window.innerHeight - 280);
+    ls = Math.floor((availH - pd * 2) / (RACE_LINES + 1));
+    ch = ls * (RACE_LINES + 1) + pd * 2;
+  } else {
+    const sidebarW = 204;
+    const availW = Math.min(window.innerWidth - sidebarW - 48, 900);
+    const availH = Math.max(560, window.innerHeight - 160);
+    ls = Math.floor((availH - pd * 2) / (RACE_LINES + 1));
+    cw = availW;
+    ch = ls * (RACE_LINES + 1) + pd * 2;
+  }
+  // 크기가 실제로 바뀐 경우에만 캔버스 재설정 (불필요한 떨림 방지)
+  const newW = Math.round(cw * dpr);
+  const newH = Math.round(ch * dpr);
+  if (raceCanvas.width === newW && raceCanvas.height === newH) return;
+  raceCanvas.width  = newW;
+  raceCanvas.height = newH;
+  raceCanvas.style.width  = cw + 'px';
+  raceCanvas.style.height = ch + 'px';
+  raceCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  raceState.lineSpacing = ls;
+  raceState.padding  = pd;
+  raceState.canvasW  = cw;
+  raceState.canvasH  = ch;
+  if (raceState.penguins.length) assignLaneX(raceState.penguins, cw);
+}
+
+function assignLaneX(penguins, cw) {
+  const n = penguins.length;
+  penguins.forEach((p, i) => {
+    p.laneX = Math.round(cw / (n + 1) * (i + 1));
+  });
+}
+
+function getLinePxY(line) {
+  const { lineSpacing: ls, padding: pd } = raceState;
+  return pd + line * ls;
+}
+
+function getPenguinPxY(p) {
+  const fromY = getLinePxY(Math.floor(p.displayPos));
+  const toY   = getLinePxY(Math.floor(p.displayPos) + 1);
+  const frac  = p.displayPos - Math.floor(p.displayPos);
+  const t = frac < 0.5 ? 2 * frac * frac : 1 - 2 * (1 - frac) * (1 - frac);
+  return fromY + (toY - fromY) * t;
+}
+
+function randomMoveMs() {
+  return state.mode === 'penguin-race-speed'
+    ? 500 + Math.random() * 500
+    : 500 + Math.random() * 1200;
+}
+
+function makePenguin(name, color, idx) {
+  return {
+    name, color, idx,
+    tile: 0,
+    displayPos: 0,
+    laneX: 0,
+    waddlePhase: idx * 0.7,
+    moving: false,
+    sliding: false,
+    fallen: false,
+    fallTimer: 0,
+    shielded: false,
+    slowed: false,
+    slowTimer: 0,
+    nextMoveMs: randomMoveMs(),
+    moveProgress: 0,
+    waitMs: 0,
+    finished: false,
+    _rank: 0,
+  };
+}
+
+function startPenguinRace(names) {
+  raceState.lastNames = names;
+  raceState.phase = 'idle';
+  raceState.paused = false;
+  if (raceState.animId) { cancelAnimationFrame(raceState.animId); raceState.animId = null; }
+  if (raceTimerId)      { clearTimeout(raceTimerId); raceTimerId = null; }
+  raceConfParticles = [];
+  raceState.firstFinisher = null;
+  raceState.obstacles = [];
+  raceState.blizzards = [];
+  raceState.fishes = [];
+  raceState.shields = [];
+  raceState.wave = null;
+  raceState.obstacleTimer = RACE_OBSTACLE_INTERVAL;
+  raceState.obstacleTimer2 = null;
+  raceState.blizzardTimer = RACE_BLIZZARD_INTERVAL;
+  raceState.waveTimer = RACE_WAVE_INTERVAL;
+  raceState.fishTimer = RACE_FISH_INTERVAL;
+  raceState.shieldTimer = RACE_SHIELD_INTERVAL;
+  raceState.penguins = names.map((name, i) => makePenguin(name, PALETTE[i % PALETTE.length], i));
+  const btnPause = document.getElementById('btn-race-pause');
+  if (btnPause) btnPause.textContent = '일시정지';
+  resizeRaceCanvas();
+  assignLaneX(raceState.penguins, raceState.canvasW);
+  showScreen('screen-race');
+  startBGM();
+  raceState.lastTs = performance.now();
+  raceState.animId = requestAnimationFrame(raceMoveLoop);
+}
+
+function spawnObstacle() {
+  const candidates = [];
+  for (let i = 2; i < RACE_LINES; i++) candidates.push(i);
+  candidates.sort(() => Math.random() - 0.5);
+  const line = candidates[0] ?? Math.floor(2 + Math.random() * (RACE_LINES - 2));
+  const emoji = RACE_OBSTACLE_EMOJIS[Math.floor(Math.random() * RACE_OBSTACLE_EMOJIS.length)];
+  const holeW = Math.floor(raceState.canvasW * 0.09);
+  const pd = raceState.padding + holeW;
+  const hx = pd + Math.random() * (raceState.canvasW - pd * 2);
+  raceState.obstacles.push({
+    line, emoji, hx, holeW,
+    age: 0,
+    lifeMs: 3000,
+    riseProgress: 0,
+    fadeProgress: 0,
+  });
+}
+
+function raceMoveLoop(ts) {
+  if (raceState.phase === 'done') return;
+  raceState.animId = requestAnimationFrame(raceMoveLoop);
+  if (raceState.paused) { raceState.lastTs = ts; return; }
+  const dt = Math.min(ts - raceState.lastTs, 50);
+  raceState.lastTs = ts;
+
+  // ── 장애물(구멍) 타이머 ──
+  raceState.obstacleTimer -= dt;
+  if (raceState.obstacleTimer <= 0) {
+    spawnObstacle();
+    raceState.obstacleTimer = RACE_OBSTACLE_INTERVAL;
+    raceState.obstacleTimer2 = RACE_OBSTACLE_INTERVAL2;
+  }
+  if (raceState.obstacleTimer2 !== null) {
+    raceState.obstacleTimer2 -= dt;
+    if (raceState.obstacleTimer2 <= 0) { spawnObstacle(); raceState.obstacleTimer2 = null; }
+  }
+
+  // ── 눈보라/파도/물고기/방패 (스피드 모드 제외) ──
+  if (state.mode === 'penguin-race-speed') {
+    // 스피드 모드: 새 이벤트 없음
+  } else {
+
+  // ── 눈보라 타이머 ──
+  raceState.blizzardTimer -= dt;
+  if (raceState.blizzardTimer <= 0) {
+    const bx = raceState.padding + Math.random() * (raceState.canvasW - raceState.padding * 2);
+    const bw = Math.floor(raceState.canvasW * 0.25 + Math.random() * raceState.canvasW * 0.2);
+    raceState.blizzards.push({ x: bx, w: bw, age: 0, lifeMs: RACE_BLIZZARD_MS });
+    raceState.blizzardTimer = RACE_BLIZZARD_INTERVAL;
+  }
+  raceState.blizzards = raceState.blizzards.filter(b => {
+    b.age += dt;
+    raceState.penguins.forEach(p => {
+      if (p.finished || p.fallen || p.shielded) return;
+      if (p.laneX >= b.x - b.w / 2 && p.laneX <= b.x + b.w / 2) {
+        p.slowed = true;
+        p.slowTimer = 500;
+      }
+    });
+    return b.age < b.lifeMs;
+  });
+
+  // ── 파도 타이머 ──
+  raceState.waveTimer -= dt;
+  if (raceState.waveTimer <= 0 && !raceState.wave) {
+    const wline = 1 + Math.floor(Math.random() * (RACE_LINES - 1));
+    raceState.wave = { line: wline, age: 0, lifeMs: 2000 };
+    raceState.waveTimer = RACE_WAVE_INTERVAL;
+  }
+  if (raceState.wave) {
+    raceState.wave.age += dt;
+    const w = raceState.wave;
+    const wEase = Math.min(1, w.age / 400);
+    if (wEase >= 1 && w.age < w.lifeMs - 400) {
+      raceState.penguins.forEach(p => {
+        if (p.finished || p.fallen) return;
+        if (p.shielded) { p.shielded = false; return; }
+        if (Math.abs(p.tile - w.line) <= 1) {
+          p.moving = false; p.moveProgress = 0;
+          p.fallen = true; p.fallTimer = RACE_FALL_MS;
+        }
+      });
+    }
+    if (raceState.wave.age >= raceState.wave.lifeMs) raceState.wave = null;
+  }
+
+  // ── 물고기 타이머 ──
+  raceState.fishTimer -= dt;
+  if (raceState.fishTimer <= 0) {
+    const fline = 1 + Math.floor(Math.random() * (RACE_LINES - 1));
+    const fx = raceState.padding + Math.random() * (raceState.canvasW - raceState.padding * 2);
+    raceState.fishes.push({ line: fline, x: fx, age: 0, lifeMs: 4000, collected: false });
+    raceState.fishTimer = RACE_FISH_INTERVAL;
+  }
+  raceState.fishes = raceState.fishes.filter(f => {
+    f.age += dt;
+    if (!f.collected) {
+      raceState.penguins.forEach(p => {
+        if (p.finished || f.collected) return;
+        if (p.tile === f.line && Math.abs(p.laneX - f.x) < 40) {
+          f.collected = true;
+          p.nextMoveMs = Math.max(300, p.nextMoveMs * 0.5);
+        }
+      });
+    }
+    return f.age < f.lifeMs && !f.collected;
+  });
+
+  // ── 방패 타이머 ──
+  raceState.shieldTimer -= dt;
+  if (raceState.shieldTimer <= 0) {
+    const alive = raceState.penguins.filter(p => !p.finished && !p.shielded);
+    if (alive.length) {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      target.shielded = true;
+    }
+    raceState.shieldTimer = RACE_SHIELD_INTERVAL;
+  }
+
+  // ── 펭귄 감속 타이머 업데이트 ──
+  raceState.penguins.forEach(p => {
+    if (p.slowed) {
+      p.slowTimer -= dt;
+      if (p.slowTimer <= 0) p.slowed = false;
+    }
+  });
+
+  } // end: 스피드 모드 제외 블록
+
+  // ── 장애물 애니메이션 & 충돌 판정 ──
+  raceState.obstacles = raceState.obstacles.filter(ob => {
+    ob.age += dt;
+    const riseMs = 600;
+    const fadeMs = 400;
+    ob.riseProgress = Math.min(1, ob.age / riseMs);
+    ob.fadeProgress = ob.age > ob.lifeMs - fadeMs
+      ? Math.max(0, (ob.lifeMs - ob.age) / fadeMs)
+      : 1;
+
+    if (ob.riseProgress >= 1 && ob.fadeProgress > 0.5) {
+      raceState.penguins.forEach(p => {
+        if (p.finished || p.fallen) return;
+        const inLine = p.tile === ob.line || p.tile === ob.line - 1;
+        const inX = Math.abs(p.laneX - ob.hx) <= ob.holeW;
+        if (inLine && inX) {
+          if (p.shielded) { p.shielded = false; return; }
+          p.moving = false;
+          p.moveProgress = 0;
+          p.fallen = true;
+          p.fallTimer = RACE_FALL_MS;
+          p.tile = Math.max(0, p.tile - 1);
+          p.displayPos = p.tile;
+        }
+      });
+    }
+
+    return ob.age < ob.lifeMs;
+  });
+
+  let winner = null;
+
+  raceState.penguins.forEach(p => {
+    if (p.finished) return;
+
+    if (p.fallen) {
+      p.fallTimer -= dt;
+      if (p.fallTimer <= 0) {
+        p.fallen = false;
+        p.moving = true;
+        p.moveProgress = 0;
+        p.nextMoveMs = randomMoveMs();
+      }
+      return;
+    }
+
+    if (p.moving) {
+      const speed = p.sliding ? p.nextMoveMs * 0.5 : (p.slowed ? p.nextMoveMs * RACE_SLOW_FACTOR : p.nextMoveMs);
+      p.waddlePhase += dt / 380 * Math.PI;
+      p.moveProgress += dt / speed;
+      const steps = p.sliding ? 2 : 1;
+      p.displayPos = p.tile + Math.min(p.moveProgress, 1) * steps;
+
+      if (p.moveProgress >= 1) {
+        p.tile += steps;
+        p.displayPos = p.tile;
+        p.moving = false;
+        p.sliding = false;
+        p.moveProgress = 0;
+
+        if (p.tile >= RACE_LINES) {
+          p.tile = RACE_LINES;
+          p.displayPos = RACE_LINES;
+          p.finished = true;
+          p.finishRank = raceState.penguins.filter(q => q.finished).length;
+          if (!raceState.firstFinisher) raceState.firstFinisher = p;
+          if (!winner) winner = p;
+          if (state.mode === 'penguin-race-speed') {
+            const alive = raceState.penguins
+              .filter(q => !q.finished)
+              .sort((a, b) => a.tile - b.tile);
+            alive.slice(0, 3).forEach(q => {
+              q.nextMoveMs = Math.max(300, q.nextMoveMs / 1.2);
+            });
+          }
+        } else {
+          const r = Math.random();
+          if (r < RACE_FALL_CHANCE) {
+            p.fallen = true;
+            p.fallTimer = RACE_FALL_MS;
+          } else if (r < RACE_FALL_CHANCE + RACE_SLIDE_CHANCE) {
+            p.sliding = true;
+            p.moving = true;
+            p.nextMoveMs = randomMoveMs();
+          } else {
+            p.moving = true;
+            p.nextMoveMs = randomMoveMs();
+          }
+        }
+      }
+    } else {
+      p.waitMs -= dt;
+      if (p.waitMs <= 0) {
+        p.moving = true;
+        p.moveProgress = 0;
+        p.nextMoveMs = randomMoveMs();
+      }
+    }
+  });
+
+  drawRaceFrame();
+  updateRaceSidebar();
+
+  const isRanking = state.mode === 'penguin-race-ranking' || state.mode === 'penguin-race-speed';
+  const allDone = raceState.penguins.every(p => p.finished);
+  if (raceState.firstFinisher && (!isRanking || allDone)) {
+    raceState.phase = 'done';
+    cancelAnimationFrame(raceState.animId);
+    raceState.animId = null;
+    setTimeout(() => finishPenguinRace(raceState.firstFinisher), 500);
+  }
+}
+
+// ── 트랙 & 펭귄 렌더링 ──────────────────────────────────────────────────────
+function pathRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawRaceFrame() {
+  if (!raceCanvas || !raceCtx) return;
+  const ctx = raceCtx;
+  const { canvasW: cw, canvasH: ch } = raceState;
+  ctx.clearRect(0, 0, cw, ch);
+
+  const bg = ctx.createLinearGradient(0, 0, 0, ch);
+  bg.addColorStop(0,   '#091524');
+  bg.addColorStop(0.5, '#0c1f3a');
+  bg.addColorStop(1,   '#091524');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, cw, ch);
+
+  drawRaceTrack(ctx);
+  drawRaceBlizzards(ctx);
+  drawRaceWave(ctx);
+  drawRaceFishes(ctx);
+  drawRaceObstacles(ctx);
+  drawRacePenguins(ctx);
+}
+
+function drawRaceTrack(ctx) {
+  const { canvasW: cw, padding: pd, lineSpacing: ls } = raceState;
+  const labelFz = Math.max(9, Math.floor(ls * 0.32));
+  const hdrFz   = Math.max(11, Math.floor(ls * 0.42));
+
+  const y1 = getLinePxY(1);
+  ctx.font = `bold ${hdrFz}px 'Segoe UI', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = '#34d399';
+  ctx.fillText('▶ START', cw / 2, y1 - 4);
+
+  for (let i = 1; i <= RACE_LINES; i++) {
+    const y = getLinePxY(i);
+    const isStart  = i === 1;
+    const isFinish = i === RACE_LINES;
+
+    ctx.beginPath();
+    ctx.moveTo(pd, y);
+    ctx.lineTo(cw - pd, y);
+
+    if (isFinish) {
+      ctx.strokeStyle = 'rgba(251,191,36,0.90)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([]);
+    } else if (isStart) {
+      ctx.strokeStyle = 'rgba(52,211,153,0.70)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+    } else {
+      ctx.strokeStyle = i % 2 === 0
+        ? 'rgba(140,200,255,0.20)'
+        : 'rgba(140,200,255,0.10)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = `bold ${labelFz}px 'Segoe UI', sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = isFinish ? 'rgba(251,191,36,0.65)' : 'rgba(140,200,255,0.30)';
+    ctx.fillText(i, pd + 4, y - 2);
+  }
+
+  const y30 = getLinePxY(RACE_LINES);
+  ctx.font = `bold ${hdrFz}px 'Segoe UI', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillText('🏁 FINISH', cw / 2, y30 + 4);
+}
+
+function drawRaceBlizzards(ctx) {
+  const { canvasH: ch } = raceState;
+  raceState.blizzards.forEach(b => {
+    const fadeMs = 500;
+    const alpha = b.age < fadeMs
+      ? b.age / fadeMs
+      : b.age > b.lifeMs - fadeMs
+        ? (b.lifeMs - b.age) / fadeMs
+        : 1;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.32;
+    const grd = ctx.createLinearGradient(b.x - b.w / 2, 0, b.x + b.w / 2, 0);
+    grd.addColorStop(0, 'transparent');
+    grd.addColorStop(0.2, '#a8d8ff');
+    grd.addColorStop(0.8, '#a8d8ff');
+    grd.addColorStop(1, 'transparent');
+    ctx.fillStyle = grd;
+    ctx.fillRect(b.x - b.w / 2, 0, b.w, ch);
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < 6; i++) {
+      const px = b.x - b.w / 2 + (b.w / 7) * (i + 1);
+      const py = ((Date.now() / 800 + i * 0.7) % 1) * ch;
+      ctx.fillText('❄️', px, py);
+    }
+    ctx.restore();
+  });
+}
+
+function drawRaceWave(ctx) {
+  if (!raceState.wave) return;
+  const w = raceState.wave;
+  const { canvasW: cw, lineSpacing: ls } = raceState;
+  const ease = Math.min(1, w.age / 400);
+  const fadeOut = w.age > w.lifeMs - 400 ? (w.lifeMs - w.age) / 400 : 1;
+  const alpha = ease * fadeOut;
+  const y = getLinePxY(w.line);
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.85;
+  const grd = ctx.createLinearGradient(0, y - ls, 0, y + ls);
+  grd.addColorStop(0, 'transparent');
+  grd.addColorStop(0.4, 'rgba(56,189,248,0.55)');
+  grd.addColorStop(0.6, 'rgba(56,189,248,0.55)');
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, y - ls, cw, ls * 2);
+  const sz = Math.floor(ls * 1.0);
+  ctx.font = `${sz}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.globalAlpha = alpha;
+  const waveX = ((Date.now() / 600) % 1) * cw;
+  for (let i = -1; i <= 2; i++) {
+    ctx.fillText('🌊', waveX + i * cw, y);
+  }
+  ctx.restore();
+}
+
+function drawRaceFishes(ctx) {
+  const { lineSpacing: ls } = raceState;
+  const sz = Math.floor(ls * 0.75);
+  raceState.fishes.forEach(f => {
+    const y = getLinePxY(f.line);
+    const bob = Math.sin(Date.now() / 300 + f.x) * 5;
+    const fadeMs = 500;
+    const alpha = f.age < fadeMs ? f.age / fadeMs : f.age > f.lifeMs - fadeMs ? (f.lifeMs - f.age) / fadeMs : 1;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `${sz}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🐟', f.x, y + bob);
+    ctx.globalAlpha = alpha * 0.4 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
+    ctx.beginPath();
+    ctx.arc(f.x, y + bob, sz * 0.7, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(253,224,71,0.5)';
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawRaceObstacles(ctx) {
+  const { canvasW: cw, lineSpacing: ls } = raceState;
+
+  raceState.obstacles.forEach(ob => {
+    const baseY = getLinePxY(ob.line);
+    const ease = 1 - Math.pow(1 - ob.riseProgress, 3);
+    const travelY = ls * (1 - ease);
+    const curY = baseY - ls + travelY;
+
+    const holeW = ob.holeW;
+    const holeH = Math.floor(ls * 0.28);
+    const hx = ob.hx;
+
+    ctx.save();
+    ctx.globalAlpha = ob.fadeProgress * ease * 0.85;
+    ctx.beginPath();
+    ctx.ellipse(hx, baseY, holeW, holeH, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#091e3a';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(140,210,255,0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    const sz = Math.floor(ls * 1.85);
+    ctx.globalAlpha = ob.fadeProgress * ease;
+    ctx.font = `${sz}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ob.emoji, hx, curY);
+
+    const flash = Math.sin(ob.age / 120) > 0;
+    if (flash && ob.riseProgress >= 1) {
+      ctx.beginPath();
+      ctx.ellipse(hx, baseY, holeW + 4, holeH + 4, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(251,100,36,0.75)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+function drawRacePenguins(ctx) {
+  const { lineSpacing: ls } = raceState;
+  const emojiSize = Math.max(20, Math.min(52, Math.floor(ls * 1.22)));
+
+  raceState.penguins.forEach(p => {
+    const x = p.laneX;
+    const y = getPenguinPxY(p);
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    if (p.fallen) {
+      ctx.rotate(Math.PI / 2);
+      ctx.globalAlpha = 0.45 + 0.55 * Math.abs(Math.sin(Date.now() / 180));
+      ctx.font = `${emojiSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐧', 0, 0);
+      ctx.restore();
+    } else if (p.sliding) {
+      ctx.rotate(-0.4);
+      ctx.font = `${emojiSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐧', 0, 0);
+      ctx.restore();
+    } else if (p.moving) {
+      const wobble = Math.sin(p.waddlePhase) * 0.22;
+      const bob    = -Math.abs(Math.sin(p.waddlePhase)) * emojiSize * 0.14;
+      ctx.rotate(wobble);
+      ctx.translate(0, bob);
+      ctx.font = `${emojiSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐧', 0, 0);
+      ctx.restore();
+    } else {
+      ctx.font = `${emojiSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐧', 0, 0);
+      ctx.restore();
+    }
+
+    if (p.shielded || p.slowed) {
+      const iconSz = Math.floor(emojiSize * 0.5);
+      ctx.font = `${iconSz}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.globalAlpha = 1;
+      ctx.fillText(p.shielded ? '🛡️' : '🌨️', x, y - emojiSize * 0.6);
+    }
+
+    const fz = Math.max(8, Math.min(13, emojiSize * 0.48));
+    ctx.globalAlpha = 1;
+    ctx.font = `bold ${fz}px 'Segoe UI', 'Noto Sans KR', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+    ctx.strokeText(p.name, x, y + emojiSize * 0.58);
+    ctx.fillStyle = p.color;
+    ctx.fillText(p.name, x, y + emojiSize * 0.58);
+  });
+  ctx.textBaseline = 'alphabetic';
+  ctx.globalAlpha = 1;
+}
+
+function updateRaceSidebar() {
+  const list = document.getElementById('race-sidebar-list');
+  if (!list) return;
+
+  const finished = raceState.penguins
+    .filter(p => p.finished)
+    .sort((a, b) => a.finishRank - b.finishRank);
+  const racing = raceState.penguins
+    .filter(p => !p.finished)
+    .sort((a, b) => b.tile - a.tile || a.name.localeCompare(b.name, 'ko'));
+
+  const sorted = [...finished, ...racing];
+  sorted.forEach((p, i) => { p._rank = i + 1; });
+
+  list.innerHTML = sorted.map(p => {
+    const rc = p._rank <= 3 ? `rank-${p._rank}` : 'rank-other';
+    const lineColor = p.finished ? '#34d399' : p.fallen ? '#f87171' : p.slowed ? '#93c5fd' : p.shielded ? '#a78bfa' : '#fbbf24';
+    const status = p.finished ? `🏁 ${p.finishRank}위` : p.fallen ? '넘어짐' : p.slowed ? '🌨️감속' : p.shielded ? '🛡️보호' : `${p.tile}선`;
+    return `<div class="sb-row" style="background:${p.color}18">
+      <span class="sb-name" title="${p.name}">${p.name}</span>
+      <span class="sb-rings" style="color:${lineColor}">${status}</span>
+      <span class="sb-rank ${rc}">${p._rank}위</span>
+    </div>`;
+  }).join('');
+}
+
+function finishPenguinRace(winner) {
+  if (raceState.animId) { cancelAnimationFrame(raceState.animId); raceState.animId = null; }
+  stopBGM();
+  updateRaceSidebar();
+
+  document.getElementById('race-winner-name').textContent = winner.name;
+
+  const rankingEl = document.getElementById('race-full-ranking');
+  if (state.mode === 'penguin-race-ranking' || state.mode === 'penguin-race-speed') {
+    const medals = ['🥇','🥈','🥉'];
+    const rows = raceState.penguins
+      .slice().sort((a, b) => a.finishRank - b.finishRank)
+      .map((p, i) => {
+        const m = medals[i] || `${i + 1}위`;
+        return `<div style="display:flex;align-items:center;gap:10px;padding:5px 10px;border-radius:8px;background:${p.color}22;margin-bottom:4px;">
+          <span style="font-size:1.2rem;min-width:28px;text-align:center;">${m}</span>
+          <span style="font-weight:700;color:${p.color};flex:1;">${p.name}</span>
+        </div>`;
+      }).join('');
+    rankingEl.innerHTML = `<div style="font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:0.08em;margin-bottom:10px;">🏁 최종 순위</div>` + rows;
+    rankingEl.style.display = 'block';
+  } else {
+    rankingEl.style.display = 'none';
+  }
+
+  const clapping = document.getElementById('clapping-penguins');
+  const count = Math.max(4, Math.min(10, raceState.penguins.length + 2));
+  clapping.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('span');
+    el.className = 'clap-penguin';
+    el.textContent = '🐧';
+    el.style.animationDelay  = `${(i * 0.11).toFixed(2)}s`;
+    el.style.animationDuration = `${(0.38 + (i % 3) * 0.07).toFixed(2)}s`;
+    clapping.appendChild(el);
+  }
+
+  showScreen('screen-race-winner');
+  raceConfCanvas.width  = raceConfCanvas.offsetWidth;
+  raceConfCanvas.height = raceConfCanvas.offsetHeight;
+  raceConfParticles = [];
+  runRaceConfetti();
+  playRaceWinnerSound(winner.name);
+}
+
+function makeConfParticle(w) {
+  return {
+    x: Math.random() * w,
+    y: -12,
+    vx: (Math.random() - 0.5) * 3.5,
+    vy: Math.random() * 3 + 1.5,
+    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+    w: Math.random() * 10 + 5,
+    h: Math.random() * 6 + 3,
+    rot: Math.random() * 360,
+    rotSpd: (Math.random() - 0.5) * 9,
+    alpha: 1,
+  };
+}
+
+function runRaceConfetti() {
+  const cw = raceConfCanvas.width, ch = raceConfCanvas.height;
+  raceConfCtx.clearRect(0, 0, cw, ch);
+  for (let i = 0; i < 6; i++) raceConfParticles.push(makeConfParticle(cw));
+  if (raceConfParticles.length > 300) raceConfParticles.splice(0, raceConfParticles.length - 300);
+  raceConfParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.rot += p.rotSpd;
+    if (p.y > ch * 0.8) p.alpha -= 0.02;
+  });
+  raceConfParticles = raceConfParticles.filter(p => p.alpha > 0 && p.y < ch + 20);
+  raceConfParticles.forEach(p => {
+    raceConfCtx.save();
+    raceConfCtx.globalAlpha = p.alpha;
+    raceConfCtx.translate(p.x, p.y);
+    raceConfCtx.rotate(p.rot * Math.PI / 180);
+    raceConfCtx.fillStyle = p.color;
+    raceConfCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    raceConfCtx.restore();
+  });
+  raceConfAnimId = requestAnimationFrame(runRaceConfetti);
+}
+
+function stopRaceConfetti() {
+  if (raceConfAnimId) { cancelAnimationFrame(raceConfAnimId); raceConfAnimId = null; }
+  raceConfParticles = [];
+  if (raceConfCtx && raceConfCanvas) raceConfCtx.clearRect(0, 0, raceConfCanvas.width, raceConfCanvas.height);
+}
+
+// ─────────────────────────────────────────────
+//  BGM SYSTEM
+// ─────────────────────────────────────────────
+let bgmCtx = null, bgmNodes = [], bgmLoopId = null, bgmTrackFn = null, bgmMaster = null;
+
+function stopBGM() {
+  if (bgmLoopId) { clearTimeout(bgmLoopId); bgmLoopId = null; }
+  bgmNodes.forEach(n => { try { n.stop(0); } catch(e){} });
+  bgmNodes = [];
+  if (bgmCtx) { bgmCtx.close().catch(()=>{}); bgmCtx = null; }
+  bgmMaster = null; bgmTrackFn = null;
+}
+
+function _bgmLoop(loopStart, dur) {
+  const msUntil = Math.max(50, (loopStart + dur - bgmCtx.currentTime - 0.2) * 1000);
+  bgmLoopId = setTimeout(() => {
+    if (!bgmCtx || !bgmTrackFn) return;
+    if (bgmCtx.state === 'suspended') bgmCtx.resume().catch(()=>{});
+    const nextStart = loopStart + dur;
+    const newNodes = [];
+    const d = bgmTrackFn(bgmCtx, nextStart, newNodes, bgmMaster);
+    bgmNodes = newNodes;
+    _bgmLoop(nextStart, d);
+  }, msUntil);
+}
+
+function startBGM() {
+  stopBGM();
+  const ACtx = window.AudioContext || window.webkitAudioContext;
+  if (!ACtx) return;
+  bgmCtx = new ACtx();
+  bgmMaster = bgmCtx.createGain();
+  bgmMaster.gain.value = 0.6;
+  bgmMaster.connect(bgmCtx.destination);
+  const tracks = [bgmT1, bgmT2, bgmT3, bgmT4, bgmT5, bgmT6, bgmT7, bgmT8, bgmT9, bgmT10];
+  bgmTrackFn = tracks[Math.floor(Math.random() * tracks.length)];
+  const now = bgmCtx.currentTime;
+  const dur = bgmTrackFn(bgmCtx, now, bgmNodes, bgmMaster);
+  _bgmLoop(now, dur);
+}
+
+function mkKick(ctx, t, vol, nodes, out) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(160, t);
+  o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+  o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.32); nodes.push(o);
+}
+
+function mkSnare(ctx, t, vol, nodes, out) {
+  const sz = Math.floor(ctx.sampleRate * 0.18);
+  const buf = ctx.createBuffer(1, sz, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < sz; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 0.7;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+  src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + 0.2); nodes.push(src);
+}
+
+function mkHat(ctx, t, vol, nodes, out) {
+  const sz = Math.floor(ctx.sampleRate * 0.04);
+  const buf = ctx.createBuffer(1, sz, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < sz; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 9000;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+  src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + 0.05); nodes.push(src);
+}
+
+function mkNote(ctx, type, freq, t, dur, vol, nodes, out, fFreq) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.012);
+  g.gain.setValueAtTime(vol, t + dur * 0.78);
+  g.gain.linearRampToValueAtTime(0, t + dur);
+  if (fFreq) {
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = fFreq;
+    o.connect(f); f.connect(g);
+  } else { o.connect(g); }
+  g.connect(out); o.start(t); o.stop(t + dur + 0.02); nodes.push(o);
+}
+
+function bgmT1(ctx, st, nodes, out) {
+  const B = 60/98, BAR = B*4, N = 8;
+  const bass = [82.41, 82.41, 98.00, 82.41, 110.00, 98.00, 82.41, 82.41];
+  const mel  = [329.63, 293.66, 261.63, 246.94, 261.63, 293.66, 329.63, 392.00];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    mkKick(ctx, t, 0.9, nodes, out);   mkKick(ctx, t+B*2, 0.9, nodes, out);
+    mkSnare(ctx, t+B, 0.44, nodes, out); mkSnare(ctx, t+B*3, 0.44, nodes, out);
+    for (let i = 0; i < 8; i++) mkHat(ctx, t+i*B*0.5, 0.11, nodes, out);
+    for (let i = 0; i < 8; i++)
+      mkNote(ctx, 'sawtooth', bass[(b*8+i)%8], t+i*B*0.5, B*0.44, 0.32, nodes, out, 400);
+    mel.forEach((f, i) => mkNote(ctx, 'square', f, t+i*B*0.5, B*0.42, 0.075, nodes, out, 1200));
+  }
+  return BAR * N;
+}
+
+function bgmT2(ctx, st, nodes, out) {
+  const B = 60/118, BAR = B*4, N = 8;
+  const chords = [
+    [220, 261.63, 329.63], [174.61, 220, 277.18],
+    [164.81, 220, 329.63], [220, 261.63, 329.63],
+  ];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    const v = 0.85;
+    [0, 0.5, 1, 1.5, 2, 3, 3.5].forEach(x => mkKick(ctx, t+x*B, 0.7*v, nodes, out));
+    mkSnare(ctx, t+B*2, 0.6*v, nodes, out);
+    const ch = chords[b%4];
+    for (let beat = 0; beat < 4; beat++)
+      ch.forEach(f => mkNote(ctx, 'sawtooth', f, t+beat*B, B*0.18, 0.14*v, nodes, out, 2000));
+    [110, 116.54, 123.47, 130.81].forEach((f, i) =>
+      mkNote(ctx, 'sawtooth', f, t+i*B, B*0.28, 0.28*v, nodes, out, 280));
+  }
+  return BAR * N;
+}
+
+function bgmT3(ctx, st, nodes, out) {
+  const B = 60/132, BAR = B*4, N = 8;
+  const hooks = [
+    [523.25, 659.25, 783.99, 659.25, 523.25, 659.25, 783.99, 880.00],
+    [783.99, 659.25, 523.25, 440.00, 523.25, 659.25, 783.99, 659.25],
+  ];
+  const bassP = [130.81, 130.81, 130.81, 196.00, 130.81, 130.81, 164.81, 130.81];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    for (let i = 0; i < 4; i++) mkKick(ctx, t+i*B, 0.85, nodes, out);
+    mkSnare(ctx, t+B, 0.55, nodes, out); mkSnare(ctx, t+B*3, 0.55, nodes, out);
+    for (let i = 0; i < 16; i++) mkHat(ctx, t+i*B*0.25, 0.08+(i%2)*0.05, nodes, out);
+    hooks[b%2].forEach((f, i) => f && mkNote(ctx, 'square', f, t+i*B*0.5, B*0.4, 0.13, nodes, out, 1500));
+    bassP.forEach((f, i) => mkNote(ctx, 'sawtooth', f, t+i*B*0.5, B*0.44, 0.36, nodes, out, 350));
+  }
+  return BAR * N;
+}
+
+function bgmT4(ctx, st, nodes, out) {
+  const B = 60/130, BAR = B*4, N = 8;
+  const mel = [
+    523.25, 523.25, 783.99, 783.99, 880, 880, 783.99, 783.99,
+    698.46, 659.25, 587.33, 523.25, 587.33, 659.25, 698.46, 783.99,
+  ];
+  const oompah = [130.81, 196.00, 130.81, 196.00];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    mkKick(ctx, t, 0.7, nodes, out); mkKick(ctx, t+B*2, 0.6, nodes, out);
+    mkSnare(ctx, t+B, 0.28, nodes, out); mkSnare(ctx, t+B*3, 0.28, nodes, out);
+    oompah.forEach((f, i) => mkNote(ctx, 'square', f, t+i*B, B*0.72, 0.28, nodes, out, 500));
+    for (let i = 0; i < 8; i++)
+      mkNote(ctx, 'square', mel[(b*8+i)%mel.length], t+i*B*0.5, B*0.46, 0.17, nodes, out, 2000);
+  }
+  return BAR * N;
+}
+
+function bgmT5(ctx, st, nodes, out) {
+  const B = 60/196, BAR = B*4, N = 8;
+  const chords = [
+    [196, 246.94, 293.66], [233.08, 293.66, 349.23],
+    [261.63, 329.63, 392],  [174.61, 220, 261.63],
+  ];
+  const solo = [
+    392, 440, 392, 349.23, 392, 329.63, 293.66, 329.63,
+    349.23, 392, 440, 493.88, 523.25, 493.88, 440, 392,
+    349.23, 392, 349.23, 329.63, 293.66, 261.63, 246.94, 261.63,
+    293.66, 329.63, 349.23, 329.63, 293.66, 246.94, 196, 246.94,
+  ];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    mkKick(ctx, t, 0.8, nodes, out); mkKick(ctx, t+B*2, 0.8, nodes, out);
+    mkSnare(ctx, t+B, 0.5, nodes, out); mkSnare(ctx, t+B*3, 0.5, nodes, out);
+    for (let i = 0; i < 8; i++) mkHat(ctx, t+i*B*0.5, 0.13, nodes, out);
+    const ch = chords[b%4];
+    ch.forEach(f => mkNote(ctx, 'sawtooth', f, t, BAR*0.88, 0.18, nodes, out, 400));
+    for (let i = 0; i < 8; i++)
+      mkNote(ctx, 'triangle', solo[(b%4)*8+i], t+i*B*0.5, B*0.38, 0.21, nodes, out, 3500);
+  }
+  return BAR * N;
+}
+
+function bgmT6(ctx, st, nodes, out) {
+  const B = 60/90, BAR = B*4, N = 8;
+  const barMels = [
+    [[220, 0, B*0.65], [261.63, B, B*0.65]],
+    [[329.63, 0, B*0.65], [440, B*1.5, B*2.2]],
+    [[392, 0, B*0.65], [329.63, B, B*0.65]],
+    [[261.63, 0, B*0.65], [220, B*1.5, B*2.2]],
+  ];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    for (let i = 0; i < 4; i++) mkHat(ctx, t+i*B, 0.2, nodes, out);
+    mkKick(ctx, t, 0.42, nodes, out);
+    mkNote(ctx, 'sine', 110, t, BAR*0.97, 0.22, nodes, out);
+    barMels[b%4].forEach(([f, off, dur]) =>
+      mkNote(ctx, 'triangle', f, t+off, Math.min(dur, BAR-off-0.05), 0.3, nodes, out, 2500));
+  }
+  return BAR * N;
+}
+
+function bgmT7(ctx, st, nodes, out) {
+  const B = 60/115, BAR = B*4, N = 8;
+  const chords = [
+    [261.63, 329.63, 392, 493.88],
+    [220, 261.63, 329.63, 392],
+    [293.66, 349.23, 440, 523.25],
+    [196, 246.94, 293.66, 349.23],
+  ];
+  const walkBass = [
+    [130.81, 164.81, 196, 246.94],
+    [110, 130.81, 164.81, 196],
+    [146.83, 174.61, 220, 261.63],
+    [196, 220, 246.94, 261.63],
+  ];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    const ch = chords[b%4], wb = walkBass[b%4];
+    for (let i = 0; i < 4; i++) {
+      mkHat(ctx, t+i*B, 0.18, nodes, out);
+      mkHat(ctx, t+i*B+B*0.66, 0.09, nodes, out);
+    }
+    mkKick(ctx, t, 0.55, nodes, out);
+    mkSnare(ctx, t+B, 0.28, nodes, out); mkSnare(ctx, t+B*3, 0.28, nodes, out);
+    wb.forEach((f, i) => mkNote(ctx, 'triangle', f, t+i*B, B*0.88, 0.34, nodes, out, 350));
+    ch.forEach(f => {
+      mkNote(ctx, 'triangle', f, t+B, B*0.28, 0.11, nodes, out, 1800);
+      mkNote(ctx, 'triangle', f, t+B*2.5, B*0.28, 0.11, nodes, out, 1800);
+    });
+  }
+  return BAR * N;
+}
+
+function bgmT8(ctx, st, nodes, out) {
+  const B = 60/130, BAR = B*4, N = 8;
+  const chords = [
+    [261.63, 329.63, 392],
+    [220, 261.63, 329.63],
+    [174.61, 261.63, 349.23],
+    [196, 246.94, 293.66],
+  ];
+  const lead = [
+    659.25, 783.99, 880, 783.99, 659.25, 587.33, 659.25, 523.25,
+    698.46, 783.99, 880, 783.99, 698.46, 587.33, 523.25, 440,
+  ];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    for (let i = 0; i < 4; i++) mkKick(ctx, t+i*B, 0.88, nodes, out);
+    mkSnare(ctx, t+B, 0.58, nodes, out); mkSnare(ctx, t+B*3, 0.58, nodes, out);
+    for (let i = 0; i < 16; i++) mkHat(ctx, t+i*B*0.25, 0.07+(i%4===0?0.05:0), nodes, out);
+    const ch = chords[b%4];
+    ch.forEach(f => {
+      mkNote(ctx, 'sawtooth', f, t, B*0.48, 0.15, nodes, out, 1200);
+      mkNote(ctx, 'sawtooth', f, t+B*2, B*0.48, 0.12, nodes, out, 1200);
+    });
+    for (let i = 0; i < 8; i++)
+      mkNote(ctx, 'square', lead[(b*8+i) % lead.length], t+i*B*0.5, B*0.44, 0.14, nodes, out, 1600);
+    mkNote(ctx, 'sawtooth', ch[0]/2, t, BAR*0.95, 0.28, nodes, out, 300);
+  }
+  return BAR * N;
+}
+
+function bgmT9(ctx, st, nodes, out) {
+  const B = 60/155, BAR = B*4, N = 8;
+  const arps = [
+    [261.63, 329.63, 392, 523.25],
+    [196, 246.94, 293.66, 392],
+    [220, 261.63, 329.63, 440],
+    [174.61, 220, 261.63, 349.23],
+  ];
+  const mel = [
+    659.25, 783.99, 1046.5, 880,  659.25, 523.25, 659.25, 880,
+    587.33, 783.99, 987.77, 783.99, 587.33, 493.88, 587.33, 783.99,
+    659.25, 880, 1046.5, 880,  659.25, 523.25, 440, 523.25,
+    698.46, 880, 1046.5, 880,  698.46, 523.25, 659.25, 783.99,
+  ];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    const arp = arps[b%4];
+    for (let i = 0; i < 16; i++)
+      mkNote(ctx, 'square', arp[i%4]*0.5, t+i*B*0.25, B*0.22, 0.18, nodes, out);
+    for (let i = 0; i < 8; i++)
+      mkNote(ctx, 'square', mel[(b%4)*8+i], t+i*B*0.5, B*0.42, 0.15, nodes, out);
+    mkNote(ctx, 'sine', 80, t, B*0.1, 0.55, nodes, out);
+    mkNote(ctx, 'sine', 80, t+B*2, B*0.1, 0.5, nodes, out);
+    mkNote(ctx, 'square', 440, t+B, B*0.07, 0.18, nodes, out);
+    mkNote(ctx, 'square', 440, t+B*3, B*0.07, 0.18, nodes, out);
+  }
+  return BAR * N;
+}
+
+function bgmT10(ctx, st, nodes, out) {
+  const B = 60/185, BAR = B*4, N = 8;
+  const riff1 = [146.83, 146.83, 293.66, 220, 207.65, 196, 174.61, 146.83];
+  const riff2 = [174.61, 196, 164.81, 146.83, 174.61, 196, 220, 207.65];
+  for (let b = 0; b < N; b++) {
+    const t = st + b * BAR;
+    mkKick(ctx, t, 0.88, nodes, out); mkKick(ctx, t+B*2, 0.88, nodes, out);
+    mkSnare(ctx, t+B, 0.52, nodes, out); mkSnare(ctx, t+B*3, 0.52, nodes, out);
+    for (let i = 0; i < 16; i++) mkHat(ctx, t+i*B*0.25, 0.11, nodes, out);
+    const r = (b%2 === 0) ? riff1 : riff2;
+    r.forEach((f, i) => mkNote(ctx, 'square', f, t+i*B*0.5, B*0.42, 0.27, nodes, out, 2000));
+    mkNote(ctx, 'sawtooth', 73.42, t, BAR*0.92, 0.3, nodes, out, 300);
+    mkNote(ctx, 'sawtooth', 110, t, BAR*0.92, 0.18, nodes, out, 300);
+  }
+  return BAR * N;
+}
+
+// ── 빵빠레 ──────────────────────────────────────────────────────────────────
+function playWinnerFanfare() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return;
+  const ctx = new AudioCtx();
+  const notes = [
+    [392.00, 0.00, 0.18, 0.30],
+    [523.25, 0.18, 0.18, 0.30],
+    [659.25, 0.36, 0.18, 0.30],
+    [783.99, 0.54, 0.28, 0.35],
+    [659.25, 0.82, 0.10, 0.28],
+    [783.99, 0.92, 0.10, 0.28],
+    [659.25, 1.02, 0.10, 0.28],
+    [783.99, 1.12, 0.35, 0.35],
+    [1046.50, 1.47, 0.85, 0.40],
+    [783.99,  2.32, 0.20, 0.30],
+    [659.25,  2.52, 0.15, 0.28],
+    [523.25,  2.67, 0.45, 0.35],
+  ];
+  notes.forEach(([freq, start, dur, vol]) => {
+    const osc    = ctx.createOscillator();
+    const gain   = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    filter.type = 'lowpass';
+    filter.frequency.value = 1800;
+    filter.Q.value = 1.2;
+    const t = ctx.currentTime + start;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(vol, t + 0.025);
+    gain.gain.setValueAtTime(vol, t + dur - 0.06);
+    gain.gain.linearRampToValueAtTime(0, t + dur);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + dur);
+  });
+}
+
+function playRaceWinnerSound(winnerName) {
+  playWinnerFanfare();
+  setTimeout(() => {
+    if (!window.speechSynthesis) return;
+    const utter = new SpeechSynthesisUtterance(`${winnerName} 우승!`);
+    utter.lang  = 'ko-KR';
+    utter.rate  = 0.85;
+    utter.pitch = 1.2;
+    window.speechSynthesis.speak(utter);
+  }, 3200);
+}
+
+// ─────────────────────────────────────────────
+//  UI
+// ─────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function parseNames(raw) {
+  return raw.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  const titleEl  = document.getElementById('input-game-title');
+  const descEl   = document.getElementById('input-game-desc');
+  const legendEl = document.getElementById('penguin-legend');
+  const extraEl  = document.getElementById('legend-extra');
+  legendEl.style.display = mode === 'penguin-race-speed' ? 'flex' : 'flex';
+  if (extraEl) extraEl.style.display = mode === 'penguin-race-speed' ? 'none' : 'block';
+
+  if (mode === 'penguin-race-first') {
+    if (titleEl) titleEl.textContent = '1위 결정전';
+    if (descEl) descEl.innerHTML =
+      '1) 이동선 하나를 이동하는 데 1~2초 소요<br>' +
+      '2) 이동선 도착 시 10% 확률로 넘어짐 (2초 기절)<br>' +
+      '3) 가장 먼저 결승선을 통과한 펭귄이 우승!';
+  } else if (mode === 'penguin-race-ranking') {
+    if (titleEl) titleEl.textContent = '순위 결정전';
+    if (descEl) descEl.innerHTML =
+      '1) 이동선 하나를 이동하는 데 1~2초 소요<br>' +
+      '2) 이동선 도착 시 10% 확률로 넘어짐 (2초 기절)<br>' +
+      '3) 모든 펭귄이 결승선을 통과할 때까지 순위를 가립니다!';
+  } else if (mode === 'penguin-race-speed') {
+    if (titleEl) titleEl.textContent = '순위 결정전 (스피드)';
+    if (descEl) descEl.innerHTML =
+      '1) 장애물·혜택 없이 순수 속도 대결<br>' +
+      '2) 이동선 도착 시 10% 확률로 넘어짐 (2초 기절)<br>' +
+      '3) 모든 펭귄이 결승선을 통과할 때까지 순위를 가립니다!';
+  }
+}
+
+function initEvents() {
+  const textarea  = document.getElementById('names-input');
+  const badge     = document.getElementById('count-badge');
+  const errorMsg  = document.getElementById('error-msg');
+  const btnStart  = document.getElementById('btn-start');
+
+  document.getElementById('btn-mode-penguin-first').addEventListener('click', () => {
+    setMode('penguin-race-first');
+    showScreen('screen-input');
+  });
+  document.getElementById('btn-mode-penguin-ranking').addEventListener('click', () => {
+    setMode('penguin-race-ranking');
+    showScreen('screen-input');
+  });
+  document.getElementById('btn-mode-penguin-speed').addEventListener('click', () => {
+    setMode('penguin-race-speed');
+    showScreen('screen-input');
+  });
+
+  document.getElementById('btn-back-home').addEventListener('click', () => {
+    showScreen('screen-home');
+  });
+
+  textarea.addEventListener('input', () => {
+    const names = parseNames(textarea.value);
+    badge.textContent = `참가자 수 ${names.length}명`;
+    errorMsg.textContent = '';
+    btnStart.disabled = names.length < 2;
+  });
+
+  btnStart.addEventListener('click', () => {
+    const names = parseNames(textarea.value);
+    if (names.length < 2) {
+      errorMsg.textContent = '참가자를 2명 이상 입력해주세요.';
+      return;
+    }
+    startPenguinRace(names);
+  });
+
+  document.getElementById('btn-race-stop').addEventListener('click', () => {
+    if (raceState.animId) { cancelAnimationFrame(raceState.animId); raceState.animId = null; }
+    if (raceTimerId)      { clearTimeout(raceTimerId); raceTimerId = null; }
+    raceState.phase = 'done';
+    raceState.paused = false;
+    stopBGM();
+    showScreen('screen-home');
+  });
+
+  document.getElementById('btn-race-pause').addEventListener('click', () => {
+    raceState.paused = !raceState.paused;
+    const btn = document.getElementById('btn-race-pause');
+    btn.textContent = raceState.paused ? '재개' : '일시정지';
+    if (raceState.paused) {
+      stopBGM();
+    } else {
+      startBGM();
+      raceState.lastTs = performance.now();
+      if (raceState.phase === 'moving' && !raceState.animId) {
+        raceState.animId = requestAnimationFrame(raceMoveLoop);
+      }
+    }
+  });
+
+  document.getElementById('btn-race-replay').addEventListener('click', () => {
+    stopRaceConfetti();
+    startPenguinRace(raceState.lastNames);
+  });
+
+  document.getElementById('btn-race-new').addEventListener('click', () => {
+    stopRaceConfetti();
+    stopBGM();
+    showScreen('screen-home');
+  });
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  raceCanvas     = document.getElementById('race-canvas');
+  raceCtx        = raceCanvas.getContext('2d');
+  raceConfCanvas = document.getElementById('race-confetti-canvas');
+  raceConfCtx    = raceConfCanvas.getContext('2d');
+
+  initEvents();
+  showScreen('screen-home');
+
+  // 화면 회전/리사이즈 대응 (디바운스 적용)
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (!document.getElementById('screen-race').classList.contains('active')) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      resizeRaceCanvas();
+    }, 200);
+  });
+});
+</script>
+</body>
+</html>
