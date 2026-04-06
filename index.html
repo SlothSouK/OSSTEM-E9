@@ -23,11 +23,54 @@
 
     /* ── 이름 입력 화면 ── */
     #screen-input {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 32px;
+      width: 90%;
+      max-width: 900px;
+    }
+    #screen-input-main {
+      display: flex;
       flex-direction: column;
       gap: 24px;
       max-width: 480px;
-      width: 90%;
+      width: 100%;
     }
+    #penguin-legend {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 200px;
+      max-width: 240px;
+      background: rgba(13,13,26,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px 14px;
+      backdrop-filter: blur(6px);
+      align-self: center;
+    }
+    #penguin-legend .legend-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+    #penguin-legend .legend-sep {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 6px 0;
+    }
+    #penguin-legend .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: #d1d5db;
+      line-height: 1.4;
+    }
+    #penguin-legend .legend-icon { font-size: 1.1rem; min-width: 22px; text-align: center; }
 
     .title {
       text-align: center;
@@ -721,21 +764,39 @@
 
 <!-- ② 이름 입력 화면 -->
 <div id="screen-input" class="screen" style="position:relative;">
-  <button class="btn-back" id="btn-back-home">← 뒤로</button>
-  <div class="title">
-    <h1><span style="-webkit-text-fill-color:#ff8c00;color:#ff8c00;">OSSTEM</span> 재경총괄본부<br><span id="input-game-title">법인 빙고</span></h1>
-    <p id="input-game-desc">1) 마지막 원을 제외한 각 원마다 탈출 구역은 4곳 (노란색)<br>
-       2) 이전 원으로 돌아가는 환입 구역은 3곳 (주황색)<br>
-       3) 구역을 통과할 때마다 속도 증가<br>
-       4) 가장 먼저 모든 원을 빠져나가는 법인 추첨!</p>
+  <div id="screen-input-main">
+    <button class="btn-back" id="btn-back-home">← 뒤로</button>
+    <div class="title">
+      <h1><span style="-webkit-text-fill-color:#ff8c00;color:#ff8c00;">OSSTEM</span> 재경총괄본부<br><span id="input-game-title">법인 빙고</span></h1>
+      <p id="input-game-desc">1) 마지막 원을 제외한 각 원마다 탈출 구역은 4곳 (노란색)<br>
+         2) 이전 원으로 돌아가는 환입 구역은 3곳 (주황색)<br>
+         3) 구역을 통과할 때마다 속도 증가<br>
+         4) 가장 먼저 모든 원을 빠져나가는 법인 추첨!</p>
+    </div>
+    <div class="input-box">
+      <label>참가 법인명 (한 줄에 하나)</label>
+      <textarea id="names-input" placeholder="홍길동&#10;김철수&#10;이영희&#10;박지민&#10;..."></textarea>
+      <div class="count-badge" id="count-badge">법인 수 0개</div>
+    </div>
+    <div class="error-msg" id="error-msg"></div>
+    <button class="btn-start" id="btn-start" disabled>게임 시작</button>
   </div>
-  <div class="input-box">
-    <label>참가 법인명 (한 줄에 하나)</label>
-    <textarea id="names-input" placeholder="홍길동&#10;김철수&#10;이영희&#10;박지민&#10;..."></textarea>
-    <div class="count-badge" id="count-badge">법인 수 0개</div>
+  <div id="penguin-legend">
+    <div class="legend-title">⚠️ 장애물</div>
+    <div class="legend-row"><span class="legend-icon">🐋</span><span>얼음 구멍 — 맞으면 넘어짐 + 1칸 후퇴</span></div>
+    <div class="legend-row"><span class="legend-icon">🦭</span><span>얼음 구멍 — 맞으면 넘어짐 + 1칸 후퇴</span></div>
+    <div class="legend-row"><span class="legend-icon">🚢</span><span>얼음 구멍 — 맞으면 넘어짐 + 1칸 후퇴</span></div>
+    <div id="legend-extra">
+      <hr class="legend-sep">
+      <div class="legend-title">🌪️ 환경 이벤트</div>
+      <div class="legend-row"><span class="legend-icon">🌨️</span><span>눈보라 — 구간 내 이동속도 절반</span></div>
+      <div class="legend-row"><span class="legend-icon">🌊</span><span>파도 — 주변 펭귄 전부 넘어짐</span></div>
+      <hr class="legend-sep">
+      <div class="legend-title">✨ 아이템</div>
+      <div class="legend-row"><span class="legend-icon">🐟</span><span>물고기 — 획득 시 2배 속도</span></div>
+      <div class="legend-row"><span class="legend-icon">🛡️</span><span>방패 — 장애물/파도 1회 무효화</span></div>
+    </div>
   </div>
-  <div class="error-msg" id="error-msg"></div>
-  <button class="btn-start" id="btn-start" disabled>게임 시작</button>
 </div>
 
 <!-- ② 게임 화면 -->
@@ -1991,15 +2052,19 @@ let raceConfAnimId = null;
 let raceTimerId = null;
 
 function resizeRaceCanvas() {
+  const dpr      = window.devicePixelRatio || 1;
   const sidebarW = 204;
-  const availW = Math.min(window.innerWidth - sidebarW - 48, 900);
-  const availH = Math.max(560, window.innerHeight - 160);
+  const availW   = Math.min(window.innerWidth - sidebarW - 48, 900);
+  const availH   = Math.max(560, window.innerHeight - 160);
   const pd = 20;
   const ls = Math.floor((availH - pd * 2) / (RACE_LINES + 1));
   const cw = availW;
   const ch = ls * (RACE_LINES + 1) + pd * 2;
-  raceCanvas.width  = cw;
-  raceCanvas.height = ch;
+  raceCanvas.width  = Math.round(cw * dpr);
+  raceCanvas.height = Math.round(ch * dpr);
+  raceCanvas.style.width  = cw + 'px';
+  raceCanvas.style.height = ch + 'px';
+  raceCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   raceState.lineSpacing = ls;
   raceState.padding  = pd;
   raceState.canvasW  = cw;
@@ -2041,7 +2106,7 @@ function makePenguin(name, color, idx) {
     shielded: false,     // 얼음 방패 보유
     slowed: false,       // 눈보라 감속 중
     slowTimer: 0,
-    nextMoveMs: 1000 + Math.random() * 1000,
+    nextMoveMs: 500 + Math.random() * 500,
     moveProgress: 0,
     waitMs: 0,
     finished: false,
@@ -2736,9 +2801,13 @@ function stopRaceConfetti() {
 //  CANVAS SIZING
 // ─────────────────────────────────────────────
 function resizeCanvas() {
+  const dpr  = window.devicePixelRatio || 1;
   const size = Math.min(window.innerWidth, window.innerHeight) * 0.94;
-  canvas.width  = size;
-  canvas.height = size;
+  canvas.width  = Math.round(size * dpr);
+  canvas.height = Math.round(size * dpr);
+  canvas.style.width  = size + 'px';
+  canvas.style.height = size + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   state.canvasSize = size;
   state.cx = size / 2;
   state.cy = size / 2;
@@ -2758,10 +2827,15 @@ function parseNames(raw) {
 
 function setMode(mode) {
   state.mode = mode;
-  const titleEl = document.getElementById('input-game-title');
-  const descEl  = document.getElementById('input-game-desc');
-  const labelEl = document.querySelector('#screen-input .input-box label');
-  const badgeEl = document.getElementById('count-badge');
+  const titleEl  = document.getElementById('input-game-title');
+  const descEl   = document.getElementById('input-game-desc');
+  const labelEl  = document.querySelector('#screen-input .input-box label');
+  const badgeEl  = document.getElementById('count-badge');
+  const legendEl = document.getElementById('penguin-legend');
+  const extraEl  = document.getElementById('legend-extra');
+  const isPenguin = mode.startsWith('penguin-race');
+  legendEl.style.display = isPenguin ? 'flex' : 'none';
+  if (extraEl) extraEl.style.display = mode === 'penguin-race-speed' ? 'none' : 'block';
   if (mode === 'ranking') {
     if (titleEl) titleEl.textContent = '사이드 메뉴 쟁탈전';
     if (descEl) descEl.innerHTML =
