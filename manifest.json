@@ -1,0 +1,24 @@
+{
+  "name": "다이내믹 펭귄 레이스",
+  "short_name": "펭귄 레이스",
+  "description": "신나게 달리는 다이내믹 레이스",
+  "start_url": "/penguin_mobile.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d1a",
+  "theme_color": "#ff8c00",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

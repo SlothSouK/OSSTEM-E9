@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>아이콘 생성기</title></head>
+<body style="background:#111;color:#fff;font-family:sans-serif;padding:20px;">
+<h2>📥 PWA 아이콘 생성기</h2>
+<p>아래 버튼을 눌러 icon-192.png 와 icon-512.png 를 다운로드하세요.</p>
+<button onclick="generate(192)" style="margin:8px;padding:12px 24px;font-size:1rem;cursor:pointer;">icon-192.png 다운로드</button>
+<button onclick="generate(512)" style="margin:8px;padding:12px 24px;font-size:1rem;cursor:pointer;">icon-512.png 다운로드</button>
+<br><br>
+<canvas id="c" style="border:1px solid #444;display:block;margin-top:12px;"></canvas>
+
+<script>
+function generate(size) {
+  const canvas = document.getElementById('c');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // 배경 (오렌지→파랑 그라데이션)
+  const grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, '#ff8c00');
+  grad.addColorStop(1, '#2563eb');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, size * 0.18);
+  ctx.fill();
+
+  // 펭귄 이모지
+  ctx.font = `${Math.floor(size * 0.55)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🐧', size / 2, size / 2);
+
+  // 다운로드
+  const a = document.createElement('a');
+  a.download = `icon-${size}.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+</script>
+</body>
+</html>
