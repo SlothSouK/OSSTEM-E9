@@ -1,9 +1,9 @@
 const CACHE_NAME = 'penguin-race-v1';
 const ASSETS = [
-  '/penguin_mobile.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
+  './penguin_mobile.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
 ];
 
 // 설치 시 캐시 저장

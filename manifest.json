@@ -2,7 +2,7 @@
   "name": "다이내믹 펭귄 레이스",
   "short_name": "펭귄 레이스",
   "description": "신나게 달리는 다이내믹 레이스",
-  "start_url": "/penguin_mobile.html",
+  "start_url": "./penguin_mobile.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0d0d1a",
