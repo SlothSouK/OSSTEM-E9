@@ -3991,7 +3991,7 @@ function initEvents() {
     document.getElementById('tn-numhint-box').addEventListener('click', tnRevealOneHint);
     document.getElementById('tn-btn-ov-new').addEventListener('click', tnStartGame);
     document.getElementById('tn-btn-ov-retry').addEventListener('click', () => { tnHideOverlay(); tnResetExpr(); });
-    document.getElementById('tn-btn-back').addEventListener('click', () => {
+    document.getElementById('btn-tn-back').addEventListener('click', () => {
       tnHideOverlay();
       tnHideHint();
       tnGame.phase = 'idle';
