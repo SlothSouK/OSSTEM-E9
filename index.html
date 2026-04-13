@@ -944,6 +944,29 @@
     .tn-btn-ov.primary { background: linear-gradient(135deg, #ff8c00, #2563eb); color: #fff; }
     .tn-btn-ov.secondary { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #e5e7eb; }
     .tn-idle-msg { text-align: center; color: #374151; font-size: 1rem; padding: 20px 0; }
+    .tn-btn-hint {
+      width: 100%;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px dashed rgba(255,255,255,0.2);
+      border-radius: 10px;
+      color: #6b7280;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      font-family: inherit;
+    }
+    .tn-btn-hint:hover:not(:disabled) { background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.4); color: #fbbf24; }
+    .tn-btn-hint:disabled { opacity: 0.3; cursor: not-allowed; }
+    .tn-hint-box {
+      background: rgba(251,191,36,0.06);
+      border: 1px solid rgba(251,191,36,0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .tn-hint-label { font-size: 0.7rem; color: #fbbf24; letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 700; }
+    .tn-hint-expr { font-size: 1.05rem; font-weight: 700; color: #fde68a; line-height: 1.6; word-break: break-all; }
     .tn-back-btn {
       position: absolute;
       top: 16px;
@@ -1175,6 +1198,12 @@
       <div class="tn-action-row">
         <button class="tn-btn-submit" id="tn-btn-submit" disabled>제출</button>
         <button class="tn-btn-reset" id="tn-btn-reset-expr">초기화</button>
+      </div>
+
+      <button class="tn-btn-hint" id="tn-btn-hint" disabled>💡 정답보기</button>
+      <div class="tn-hint-box" id="tn-hint-box" style="display:none;">
+        <div class="tn-hint-label">힌트</div>
+        <div class="tn-hint-expr" id="tn-hint-expr"></div>
       </div>
     </div>
   </div>
@@ -3695,8 +3724,136 @@ function initEvents() {
     document.getElementById('tn-result-overlay').classList.remove('show');
   }
 
+  // ─────────────────────────────────────────────
+  //  SOLVER (정답보기)
+  // ─────────────────────────────────────────────
+  function tnSolve() {
+    const pool = tnGame.pool;
+    const target = tnGame.target;
+    const k = tnGame.k;
+    const opsArr = ['+', '-', '×', '÷'];
+
+    function evalSeq(nums, ops) {
+      let r = nums[0];
+      for (let i = 0; i < ops.length; i++) {
+        const n = nums[i + 1];
+        if (ops[i] === '+') r += n;
+        else if (ops[i] === '-') r -= n;
+        else if (ops[i] === '×') r *= n;
+        else { if (n === 0) return null; r /= n; }
+      }
+      return r;
+    }
+
+    function tryPerm(perm) {
+      const opCount = perm.length - 1;
+      const total = Math.pow(4, opCount);
+      for (let mask = 0; mask < total; mask++) {
+        const ops = [];
+        let m = mask;
+        for (let j = 0; j < opCount; j++) { ops.push(opsArr[m & 3]); m >>= 2; }
+        const r = evalSeq(perm, ops);
+        if (r !== null && Math.round(r) === target) return ops;
+      }
+      return null;
+    }
+
+    // Heap's algorithm (in-place permutations)
+    function heapPerms(arr, cb) {
+      const n = arr.length;
+      const c = new Array(n).fill(0);
+      if (cb([...arr])) return true;
+      let i = 0;
+      while (i < n) {
+        if (c[i] < i) {
+          if (i % 2 === 0) [arr[0], arr[i]] = [arr[i], arr[0]];
+          else [arr[c[i]], arr[i]] = [arr[i], arr[c[i]]];
+          if (cb([...arr])) return true;
+          c[i]++;
+          i = 0;
+        } else { c[i] = 0; i++; }
+      }
+      return false;
+    }
+
+    // Combination iterator (indices)
+    function* combos(n, r) {
+      const idx = Array.from({length: r}, (_, i) => i);
+      while (true) {
+        yield [...idx];
+        let i = r - 1;
+        while (i >= 0 && idx[i] === i + n - r) i--;
+        if (i < 0) break;
+        idx[i]++;
+        for (let j = i + 1; j < r; j++) idx[j] = idx[j - 1] + 1;
+      }
+    }
+
+    // Exhaustive search for given subset size
+    function exhaustive(size) {
+      for (const idxCombo of combos(pool.length, size)) {
+        const vals = idxCombo.map(i => pool[i]);
+        let found = null;
+        heapPerms([...vals], (perm) => {
+          const ops = tryPerm(perm);
+          if (ops !== null) { found = { nums: perm, ops }; return true; }
+          return false;
+        });
+        if (found) return found;
+      }
+      return null;
+    }
+
+    // Exhaustive for k up to 4, random for k>=5
+    const maxExhaustive = 4;
+    for (let size = k; size <= Math.min(k + 1, pool.length, maxExhaustive); size++) {
+      const r = exhaustive(size);
+      if (r) return r;
+    }
+
+    // Random search
+    const searchSize = Math.min(k + 1, pool.length);
+    for (let attempt = 0; attempt < 100000; attempt++) {
+      const perm = tnShuffled(pool).slice(0, searchSize);
+      const ops = tryPerm(perm);
+      if (ops !== null) return { nums: perm, ops };
+    }
+
+    return null;
+  }
+
+  function tnFormatSolution(sol) {
+    if (!sol) return '정답을 찾지 못했습니다.';
+    let s = String(sol.nums[0]);
+    for (let i = 0; i < sol.ops.length; i++) {
+      s += ` ${sol.ops[i]} ${sol.nums[i + 1]}`;
+    }
+    return `${s} = ${tnGame.target}`;
+  }
+
+  function tnShowHint() {
+    const hintBox  = document.getElementById('tn-hint-box');
+    const hintExpr = document.getElementById('tn-hint-expr');
+    const btn      = document.getElementById('tn-btn-hint');
+    btn.textContent = '⏳ 계산 중...';
+    btn.disabled = true;
+    // setTimeout to let UI update before heavy computation
+    setTimeout(() => {
+      const sol = tnSolve();
+      hintExpr.textContent = tnFormatSolution(sol);
+      hintBox.style.display = 'block';
+      btn.textContent = '💡 정답보기';
+      btn.disabled = false;
+    }, 30);
+  }
+
+  function tnHideHint() {
+    document.getElementById('tn-hint-box').style.display = 'none';
+  }
+
   function tnStartGame() {
     tnHideOverlay();
+    tnHideHint();
     const puzzle = tnGeneratePuzzle();
     tnGame.pool        = puzzle.pool;
     tnGame.target      = puzzle.target;
@@ -3707,6 +3864,7 @@ function initEvents() {
     tnGame.phase       = 'playing';
     document.getElementById('tn-target-display').textContent = puzzle.target;
     document.getElementById('tn-k-display').textContent = `${puzzle.k}개 이상`;
+    document.getElementById('tn-btn-hint').disabled = false;
     tnRenderAll();
   }
 
@@ -3721,10 +3879,12 @@ function initEvents() {
     document.getElementById('tn-btn-new').addEventListener('click', tnStartGame);
     document.getElementById('tn-btn-submit').addEventListener('click', tnCheckAnswer);
     document.getElementById('tn-btn-reset-expr').addEventListener('click', tnResetExpr);
+    document.getElementById('tn-btn-hint').addEventListener('click', tnShowHint);
     document.getElementById('tn-btn-ov-new').addEventListener('click', tnStartGame);
     document.getElementById('tn-btn-ov-retry').addEventListener('click', () => { tnHideOverlay(); tnResetExpr(); });
     document.getElementById('tn-btn-back').addEventListener('click', () => {
       tnHideOverlay();
+      tnHideHint();
       tnGame.phase = 'idle';
       showScreen('screen-home');
       switchHomeTab('target');
