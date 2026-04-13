@@ -706,6 +706,260 @@
       from { transform: rotate(-18deg) translateY(0); }
       to   { transform: rotate(18deg) translateY(-10px); }
     }
+
+    /* ── 타겟 넘버 게임 화면 ── */
+    #screen-target-number {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      overflow-y: auto;
+    }
+    .tn-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .tn-header h2 {
+      font-size: 1.8rem;
+      font-weight: 900;
+      background: linear-gradient(90deg, #ff8c00, #f97316, #2563eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 4px;
+    }
+    .tn-header p { font-size: 0.85rem; color: #6b7280; }
+    .tn-layout {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 820px;
+    }
+    .tn-left {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+    .tn-panel-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .tn-panel-btn {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: #e5e7eb;
+      font-size: 1.4rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s, opacity 0.2s;
+    }
+    .tn-panel-btn:hover:not(.tn-used):not(.tn-idle) {
+      background: rgba(255,140,0,0.18);
+      border-color: rgba(255,140,0,0.6);
+      transform: translateY(-2px);
+    }
+    .tn-panel-btn.tn-used { opacity: 0.28; cursor: not-allowed; border-color: rgba(255,255,255,0.06); }
+    .tn-panel-btn.tn-idle { opacity: 0.3; cursor: not-allowed; }
+    .tn-panel-btn.tn-sqrt-pending {
+      border-color: #34d399;
+      background: rgba(52,211,153,0.1);
+      animation: tn-pulse-green 0.8s ease infinite alternate;
+    }
+    @keyframes tn-pulse-green {
+      from { box-shadow: 0 0 0 0 rgba(52,211,153,0.3); }
+      to   { box-shadow: 0 0 0 8px rgba(52,211,153,0); }
+    }
+    .tn-op-section {
+      background: rgba(13,13,26,0.7);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .tn-op-label { font-size: 0.72rem; color: #6b7280; letter-spacing: 0.06em; margin-bottom: 10px; }
+    .tn-op-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tn-op-btn {
+      flex: 1;
+      min-width: 48px;
+      padding: 10px 6px;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: #e5e7eb;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      text-align: center;
+      font-family: inherit;
+    }
+    .tn-op-btn:hover:not(:disabled) { background: rgba(37,99,235,0.22); border-color: rgba(37,99,235,0.5); transform: translateY(-1px); }
+    .tn-op-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+    .tn-op-btn.tn-active-sqrt { background: rgba(52,211,153,0.2); border-color: #34d399; color: #34d399; }
+    .tn-op-btn.tn-back { color: #f87171; border-color: rgba(248,113,113,0.3); }
+    .tn-op-btn.tn-clear { color: #fbbf24; border-color: rgba(251,191,36,0.3); }
+    .tn-op-btn.tn-back:hover:not(:disabled) { background: rgba(248,113,113,0.15); border-color: #f87171; }
+    .tn-op-btn.tn-clear:hover:not(:disabled) { background: rgba(251,191,36,0.15); border-color: #fbbf24; }
+    .tn-btn-new {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #ff8c00, #2563eb);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.04em;
+      font-family: inherit;
+    }
+    .tn-btn-new:hover { opacity: 0.9; transform: translateY(-1px); }
+    .tn-right {
+      width: 260px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .tn-info-box {
+      background: rgba(13,13,26,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 18px 16px;
+      backdrop-filter: blur(6px);
+    }
+    .tn-info-label { font-size: 0.72rem; color: #6b7280; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .tn-target-number {
+      font-size: 3.2rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .tn-k-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(255,140,0,0.15);
+      border: 1px solid rgba(255,140,0,0.35);
+      color: #ff8c00;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .tn-expr-box {
+      background: rgba(13,13,26,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 16px;
+      min-height: 120px;
+      backdrop-filter: blur(6px);
+    }
+    .tn-expr-display { font-size: 1.1rem; font-weight: 600; color: #e5e7eb; word-break: break-all; min-height: 32px; line-height: 1.6; }
+    .tn-expr-sep { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 10px 0; }
+    .tn-expr-result { font-size: 1.5rem; font-weight: 800; }
+    .tn-expr-result.ok { color: #34d399; }
+    .tn-expr-result.err { color: #6b7280; }
+    .tn-expr-result.close { color: #fbbf24; }
+    .tn-expr-count { font-size: 0.75rem; color: #6b7280; margin-top: 6px; }
+    .tn-expr-count.warn { color: #f87171; }
+    .tn-action-row { display: flex; gap: 10px; }
+    .tn-btn-submit {
+      flex: 1;
+      padding: 12px;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      font-family: inherit;
+    }
+    .tn-btn-submit:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    .tn-btn-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+    .tn-btn-reset {
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      color: #9ca3af;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+    .tn-btn-reset:hover { background: rgba(255,255,255,0.13); }
+    .tn-result-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .tn-result-overlay.show { display: flex; }
+    .tn-result-card {
+      background: #0d0d1a;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 40px 48px;
+      text-align: center;
+      max-width: 360px;
+      width: 90%;
+    }
+    .tn-result-emoji { font-size: 4rem; margin-bottom: 16px; }
+    .tn-result-title { font-size: 1.8rem; font-weight: 900; margin-bottom: 8px; }
+    .tn-result-title.win {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tn-result-title.fail { color: #f87171; }
+    .tn-result-sub { color: #6b7280; font-size: 0.9rem; margin-bottom: 24px; }
+    .tn-result-btns { display: flex; gap: 12px; justify-content: center; }
+    .tn-btn-ov {
+      padding: 11px 24px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s;
+      font-family: inherit;
+    }
+    .tn-btn-ov:hover { opacity: 0.85; }
+    .tn-btn-ov.primary { background: linear-gradient(135deg, #ff8c00, #2563eb); color: #fff; }
+    .tn-btn-ov.secondary { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #e5e7eb; }
+    .tn-idle-msg { text-align: center; color: #374151; font-size: 1rem; padding: 20px 0; }
+    .tn-back-btn {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 8px;
+      color: #9ca3af;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+    .tn-back-btn:hover { background: rgba(255,255,255,0.13); color: #e5e7eb; }
   </style>
 </head>
 <body>
@@ -720,6 +974,7 @@
   <div class="game-tabs">
     <button class="tab-btn active" id="tab-escape" onclick="switchHomeTab('escape')">탈출</button>
     <button class="tab-btn" id="tab-race" onclick="switchHomeTab('race')">🐧 레이스</button>
+    <button class="tab-btn" id="tab-target" onclick="switchHomeTab('target')">🔢 타겟 넘버</button>
   </div>
   <div id="tab-content-escape" class="mode-cards">
     <div class="mode-card" id="btn-mode-bingo">
@@ -738,6 +993,14 @@
       <div class="mode-card-icon">🔒</div>
       <div class="mode-card-name">COMING SOON</div>
       <div class="mode-card-desc">준비 중입니다</div>
+    </div>
+  </div>
+  <div id="tab-content-target" class="mode-cards" style="display:none;">
+    <div class="mode-card" id="btn-mode-target-number">
+      <div class="mode-card-icon">🔢</div>
+      <div class="mode-card-name">타겟 넘버</div>
+      <div class="mode-card-desc">패널 숫자로 수식을 만들어<br>타겟 넘버를 맞춰라!</div>
+      <div class="mode-card-tag">MATH PUZZLE</div>
     </div>
   </div>
   <div id="tab-content-race" class="mode-cards" style="display:none;">
@@ -859,6 +1122,77 @@
   </div>
 </div>
 
+<!-- ⑦ 타겟 넘버 게임 화면 -->
+<div id="screen-target-number" class="screen" style="position:relative;">
+  <button class="tn-back-btn" id="btn-tn-back">← 뒤로</button>
+
+  <div class="tn-header">
+    <h2>🔢 타겟 넘버</h2>
+    <p>패널 숫자로 수식을 만들어 타겟 넘버를 맞춰라!</p>
+  </div>
+
+  <div class="tn-layout">
+    <!-- 왼쪽: 숫자 패널 + 연산자 -->
+    <div class="tn-left">
+      <div class="tn-panel-grid" id="tn-panel-grid">
+        <div class="tn-idle-msg" style="grid-column:1/-1;padding:40px 0;">신규 게임을 눌러 시작하세요</div>
+      </div>
+
+      <div class="tn-op-section">
+        <div class="tn-op-label">연산자</div>
+        <div class="tn-op-row" id="tn-op-row">
+          <button class="tn-op-btn" data-tnop="+" disabled>+</button>
+          <button class="tn-op-btn" data-tnop="-" disabled>−</button>
+          <button class="tn-op-btn" data-tnop="×" disabled>×</button>
+          <button class="tn-op-btn" data-tnop="÷" disabled>÷</button>
+          <button class="tn-op-btn" id="tn-btn-sqrt" data-tnop="sqrt" disabled>√</button>
+          <button class="tn-op-btn" id="tn-btn-sq" data-tnop="sq" disabled>x²</button>
+          <button class="tn-op-btn tn-back" id="tn-btn-back" data-tnop="back" disabled>←</button>
+          <button class="tn-op-btn tn-clear" id="tn-btn-clear" data-tnop="clear" disabled>C</button>
+        </div>
+      </div>
+
+      <button class="tn-btn-new" id="tn-btn-new">🎲 신규 게임</button>
+    </div>
+
+    <!-- 오른쪽: 타겟 정보 + 수식 -->
+    <div class="tn-right">
+      <div class="tn-info-box">
+        <div class="tn-info-label">타겟 넘버</div>
+        <div class="tn-target-number" id="tn-target-display">—</div>
+        <div class="tn-info-label" style="margin-bottom:4px;">활용 수</div>
+        <div class="tn-k-badge" id="tn-k-display">—</div>
+      </div>
+
+      <div class="tn-expr-box">
+        <div class="tn-info-label">수식</div>
+        <div class="tn-expr-display" id="tn-expr-display"><span style="color:#374151">수식을 입력하세요</span></div>
+        <hr class="tn-expr-sep">
+        <div class="tn-expr-result err" id="tn-result-display">= ?</div>
+        <div class="tn-expr-count" id="tn-count-display"></div>
+      </div>
+
+      <div class="tn-action-row">
+        <button class="tn-btn-submit" id="tn-btn-submit" disabled>제출</button>
+        <button class="tn-btn-reset" id="tn-btn-reset-expr">초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 결과 오버레이 -->
+  <div class="tn-result-overlay" id="tn-result-overlay">
+    <div class="tn-result-card">
+      <div class="tn-result-emoji" id="tn-ov-emoji">🎉</div>
+      <div class="tn-result-title" id="tn-ov-title">정답!</div>
+      <div class="tn-result-sub" id="tn-ov-sub"></div>
+      <div class="tn-result-btns">
+        <button class="tn-btn-ov primary" id="tn-btn-ov-new">신규 게임</button>
+        <button class="tn-btn-ov secondary" id="tn-btn-ov-retry">다시 시도</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ③ 당첨자 화면 -->
 <div id="screen-winner" class="screen">
   <canvas id="confetti-canvas"></canvas>
@@ -884,8 +1218,10 @@
 function switchHomeTab(tab) {
   document.getElementById('tab-escape').classList.toggle('active', tab === 'escape');
   document.getElementById('tab-race').classList.toggle('active', tab === 'race');
+  document.getElementById('tab-target').classList.toggle('active', tab === 'target');
   document.getElementById('tab-content-escape').style.display = tab === 'escape' ? 'flex' : 'none';
   document.getElementById('tab-content-race').style.display = tab === 'race' ? 'flex' : 'none';
+  document.getElementById('tab-content-target').style.display = tab === 'target' ? 'flex' : 'none';
 }
 
 // ─────────────────────────────────────────────
@@ -2914,6 +3250,9 @@ function initEvents() {
     setMode('penguin-race-speed');
     showScreen('screen-input');
   });
+  document.getElementById('btn-mode-target-number').addEventListener('click', () => {
+    showScreen('screen-target-number');
+  });
 
   // 뒤로 버튼
   document.getElementById('btn-back-home').addEventListener('click', () => {
@@ -3038,6 +3377,365 @@ function initEvents() {
 
 // ─────────────────────────────────────────────
 //  INIT
+// ─────────────────────────────────────────────
+// 타겟 넘버 게임 로직
+// ─────────────────────────────────────────────
+(function() {
+  'use strict';
+
+  let tnGame = {
+    pool: [],
+    target: 0,
+    k: 1,
+    tokens: [],
+    pendingSqrt: false,
+    usedPanels: new Set(),
+    phase: 'idle',
+  };
+
+  function tnShuffled(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function tnRandInt(min, max) {
+    return min + Math.floor(Math.random() * (max - min + 1));
+  }
+
+  function tnEvalRandom(nums) {
+    const ops = ['+', '-', '*', '/'];
+    let result = nums[0];
+    for (let i = 1; i < nums.length; i++) {
+      const op = ops[Math.floor(Math.random() * 4)];
+      if (op === '/' && nums[i] === 0) { result += nums[i]; continue; }
+      if (op === '+') result += nums[i];
+      else if (op === '-') result -= nums[i];
+      else if (op === '*') result *= nums[i];
+      else result /= nums[i];
+    }
+    return result;
+  }
+
+  function tnGeneratePuzzle() {
+    const all = Array.from({length: 31}, (_, i) => i);
+    const pool = tnShuffled(all).slice(0, 16);
+    const k = tnRandInt(1, 6);
+    for (let attempt = 0; attempt < 300; attempt++) {
+      const count = Math.min(k + tnRandInt(0, 2), 16);
+      const chosen = tnShuffled(pool).slice(0, count);
+      const r = Math.round(tnEvalRandom(chosen));
+      if (Number.isFinite(r) && r >= 1 && r <= 200) return { pool, target: r, k };
+    }
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const chosen = tnShuffled(pool).slice(0, k);
+      const sum = chosen.reduce((a, b) => a + b, 0);
+      if (sum >= 1 && sum <= 200) return { pool, target: sum, k };
+    }
+    const pos = pool.find(n => n >= 1 && n <= 200);
+    return { pool, target: pos || 10, k: 1 };
+  }
+
+  function tnTokensToJsExpr(tokens) {
+    const opMap = { '+': '+', '-': '-', '×': '*', '÷': '/' };
+    let parts = [];
+    for (const tok of tokens) {
+      if (tok.type === 'op') {
+        parts.push(opMap[tok.value]);
+      } else if (tok.type === 'num') {
+        let v = tok.value;
+        let s;
+        if (tok.sqrt && tok.sq) s = `Math.pow(Math.sqrt(${v}),2)`;
+        else if (tok.sqrt)       s = `Math.sqrt(${v})`;
+        else if (tok.sq)         s = `Math.pow(${v},2)`;
+        else                     s = String(v);
+        parts.push(s);
+      }
+    }
+    return parts.join('');
+  }
+
+  function tnEvalExpression(tokens) {
+    if (tokens.length === 0) return null;
+    const last = tokens[tokens.length - 1];
+    if (last.type === 'op') return null;
+    const jsExpr = tnTokensToJsExpr(tokens);
+    if (!jsExpr) return null;
+    try {
+      // eslint-disable-next-line no-new-func
+      const val = new Function(`return (${jsExpr})`)();
+      if (!Number.isFinite(val) || isNaN(val)) return null;
+      return val;
+    } catch { return null; }
+  }
+
+  function tnTokensToDisplay(tokens, pendingSqrt) {
+    let parts = tokens.map(tok => {
+      if (tok.type === 'op') return `<span style="color:#60a5fa"> ${tok.value} </span>`;
+      if (tok.type === 'num') {
+        let s = tok.value.toString();
+        if (tok.sqrt && tok.sq) return `<span style="color:#34d399">(√${s})²</span>`;
+        if (tok.sqrt) return `<span style="color:#34d399">√${s}</span>`;
+        if (tok.sq)   return `<span style="color:#a78bfa">${s}²</span>`;
+        return `<span style="color:#e5e7eb">${s}</span>`;
+      }
+      return '';
+    });
+    if (pendingSqrt) parts.push('<span style="color:#34d399;font-weight:800;">√_</span>');
+    return parts.join('') || '<span style="color:#374151">수식을 입력하세요</span>';
+  }
+
+  function tnTokensToPlain(tokens) {
+    return tokens.map(tok => {
+      if (tok.type === 'op') return ` ${tok.value} `;
+      if (tok.type === 'num') {
+        if (tok.sqrt && tok.sq) return `(√${tok.value})²`;
+        if (tok.sqrt) return `√${tok.value}`;
+        if (tok.sq)   return `${tok.value}²`;
+        return String(tok.value);
+      }
+      return '';
+    }).join('');
+  }
+
+  function tnCountUsedNums() {
+    return tnGame.tokens.filter(t => t.type === 'num').length;
+  }
+
+  function tnGetLastType() {
+    if (tnGame.tokens.length === 0) return 'none';
+    return tnGame.tokens[tnGame.tokens.length - 1].type;
+  }
+
+  function tnCanEnterNum() {
+    if (tnGame.phase !== 'playing') return false;
+    if (tnGame.pendingSqrt) return true;
+    const lt = tnGetLastType();
+    return lt === 'none' || lt === 'op';
+  }
+
+  function tnCanEnterOp() {
+    if (tnGame.phase !== 'playing') return false;
+    if (tnGame.pendingSqrt) return false;
+    return tnGetLastType() === 'num';
+  }
+
+  function tnHandlePanelClick(idx) {
+    if (!tnCanEnterNum()) return;
+    if (tnGame.usedPanels.has(idx)) return;
+    const val = tnGame.pool[idx];
+    tnGame.tokens.push({ type: 'num', value: val, panelIdx: idx, sqrt: tnGame.pendingSqrt, sq: false });
+    tnGame.pendingSqrt = false;
+    tnGame.usedPanels.add(idx);
+    tnRenderAll();
+  }
+
+  function tnHandleOpClick(op) {
+    if (op === 'sqrt') {
+      if (tnGame.phase !== 'playing') return;
+      tnGame.pendingSqrt = !tnGame.pendingSqrt;
+      tnRenderAll();
+      return;
+    }
+    if (op === 'sq') {
+      if (tnGame.phase !== 'playing') return;
+      if (tnGetLastType() !== 'num') return;
+      const last = tnGame.tokens[tnGame.tokens.length - 1];
+      if (!last.sq) last.sq = true;
+      tnRenderAll();
+      return;
+    }
+    if (op === 'back') {
+      if (tnGame.tokens.length === 0 && !tnGame.pendingSqrt) return;
+      if (tnGame.pendingSqrt) { tnGame.pendingSqrt = false; tnRenderAll(); return; }
+      const removed = tnGame.tokens.pop();
+      if (removed.type === 'num') tnGame.usedPanels.delete(removed.panelIdx);
+      tnRenderAll();
+      return;
+    }
+    if (op === 'clear') {
+      tnGame.tokens = [];
+      tnGame.pendingSqrt = false;
+      tnGame.usedPanels.clear();
+      tnRenderAll();
+      return;
+    }
+    if (!tnCanEnterOp()) return;
+    tnGame.tokens.push({ type: 'op', value: op });
+    tnRenderAll();
+  }
+
+  function tnCheckAnswer() {
+    const used = tnCountUsedNums();
+    if (used < tnGame.k) {
+      tnShowOverlay(false, '활용 수 부족', `${tnGame.k}개 이상 사용해야 합니다. (현재 ${used}개)`);
+      return;
+    }
+    const raw = tnEvalExpression(tnGame.tokens);
+    if (raw === null) { tnShowOverlay(false, '수식 오류', '완성된 수식이 아닙니다.'); return; }
+    const rounded = Math.round(raw);
+    if (rounded === tnGame.target) {
+      tnShowOverlay(true, '정답!', `${tnTokensToPlain(tnGame.tokens)} = ${rounded}`);
+    } else {
+      tnShowOverlay(false, '아쉬워요', `결과: ${rounded} ≠ 타겟: ${tnGame.target}`);
+    }
+  }
+
+  function tnRenderAll() {
+    tnRenderPanels();
+    tnRenderExpression();
+    tnUpdateOpButtons();
+  }
+
+  function tnRenderPanels() {
+    const grid = document.getElementById('tn-panel-grid');
+    if (tnGame.phase === 'idle') {
+      grid.innerHTML = `<div class="tn-idle-msg" style="grid-column:1/-1;padding:40px 0;">신규 게임을 눌러 시작하세요</div>`;
+      return;
+    }
+    grid.innerHTML = tnGame.pool.map((num, i) => {
+      const used = tnGame.usedPanels.has(i);
+      const canClick = tnCanEnterNum() && !used;
+      let cls = 'tn-panel-btn';
+      if (used) cls += ' tn-used';
+      else if (!canClick) cls += ' tn-idle';
+      if (tnGame.pendingSqrt && !used) cls = 'tn-panel-btn tn-sqrt-pending';
+      const label = String(num).padStart(2, '0');
+      return `<button class="${cls}" data-tnidx="${i}" ${used || !canClick ? 'disabled' : ''}>${label}</button>`;
+    }).join('');
+    grid.querySelectorAll('.tn-panel-btn:not(.tn-used):not(.tn-idle):not([disabled])').forEach(btn => {
+      btn.addEventListener('click', () => tnHandlePanelClick(Number(btn.dataset.tnidx)));
+    });
+  }
+
+  function tnRenderExpression() {
+    const exprEl   = document.getElementById('tn-expr-display');
+    const resultEl = document.getElementById('tn-result-display');
+    const countEl  = document.getElementById('tn-count-display');
+    const submitEl = document.getElementById('tn-btn-submit');
+
+    exprEl.innerHTML = tnTokensToDisplay(tnGame.tokens, tnGame.pendingSqrt);
+
+    const raw = tnEvalExpression(tnGame.tokens);
+    const used = tnCountUsedNums();
+
+    if (raw === null) {
+      resultEl.textContent = '= ?';
+      resultEl.className = 'tn-expr-result err';
+    } else {
+      const r = Math.round(raw);
+      if (r === tnGame.target && used >= tnGame.k) {
+        resultEl.textContent = `= ${r} ✓`;
+        resultEl.className = 'tn-expr-result ok';
+      } else if (Math.abs(r - tnGame.target) <= 5) {
+        resultEl.textContent = `= ${r}`;
+        resultEl.className = 'tn-expr-result close';
+      } else {
+        resultEl.textContent = `= ${r}`;
+        resultEl.className = 'tn-expr-result err';
+      }
+    }
+
+    if (tnGame.phase === 'playing') {
+      const needMore = tnGame.k - used;
+      if (used === 0) {
+        countEl.textContent = `숫자를 ${tnGame.k}개 이상 사용하세요`;
+        countEl.className = 'tn-expr-count warn';
+      } else if (needMore > 0) {
+        countEl.textContent = `${needMore}개 더 사용해야 합니다 (${used}/${tnGame.k}+)`;
+        countEl.className = 'tn-expr-count warn';
+      } else {
+        countEl.textContent = `사용: ${used}개 (활용 수 ${tnGame.k}개 이상 충족)`;
+        countEl.className = 'tn-expr-count';
+      }
+    } else {
+      countEl.textContent = '';
+    }
+
+    const canSubmit = tnGame.phase === 'playing' && raw !== null && used >= tnGame.k;
+    submitEl.disabled = !canSubmit;
+  }
+
+  function tnUpdateOpButtons() {
+    document.querySelectorAll('#tn-op-row .tn-op-btn[data-tnop]').forEach(btn => {
+      const op = btn.dataset.tnop;
+      let enabled = false;
+      if (tnGame.phase !== 'playing') {
+        enabled = false;
+      } else if (op === 'sqrt') {
+        enabled = true;
+      } else if (op === 'sq') {
+        enabled = tnGetLastType() === 'num' && !tnGame.tokens[tnGame.tokens.length - 1]?.sq;
+      } else if (op === 'back') {
+        enabled = tnGame.tokens.length > 0 || tnGame.pendingSqrt;
+      } else if (op === 'clear') {
+        enabled = tnGame.tokens.length > 0 || tnGame.pendingSqrt;
+      } else {
+        enabled = tnCanEnterOp();
+      }
+      btn.disabled = !enabled;
+    });
+    const sqrtBtn = document.getElementById('tn-btn-sqrt');
+    if (sqrtBtn) sqrtBtn.classList.toggle('tn-active-sqrt', tnGame.pendingSqrt);
+  }
+
+  function tnShowOverlay(win, title, sub) {
+    document.getElementById('tn-ov-emoji').textContent = win ? '🎉' : '😢';
+    const titleEl = document.getElementById('tn-ov-title');
+    titleEl.textContent = title;
+    titleEl.className = win ? 'tn-result-title win' : 'tn-result-title fail';
+    document.getElementById('tn-ov-sub').textContent = sub;
+    document.getElementById('tn-result-overlay').classList.add('show');
+  }
+
+  function tnHideOverlay() {
+    document.getElementById('tn-result-overlay').classList.remove('show');
+  }
+
+  function tnStartGame() {
+    tnHideOverlay();
+    const puzzle = tnGeneratePuzzle();
+    tnGame.pool        = puzzle.pool;
+    tnGame.target      = puzzle.target;
+    tnGame.k           = puzzle.k;
+    tnGame.tokens      = [];
+    tnGame.pendingSqrt = false;
+    tnGame.usedPanels  = new Set();
+    tnGame.phase       = 'playing';
+    document.getElementById('tn-target-display').textContent = puzzle.target;
+    document.getElementById('tn-k-display').textContent = `${puzzle.k}개 이상`;
+    tnRenderAll();
+  }
+
+  function tnResetExpr() {
+    tnGame.tokens      = [];
+    tnGame.pendingSqrt = false;
+    tnGame.usedPanels  = new Set();
+    tnRenderAll();
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('tn-btn-new').addEventListener('click', tnStartGame);
+    document.getElementById('tn-btn-submit').addEventListener('click', tnCheckAnswer);
+    document.getElementById('tn-btn-reset-expr').addEventListener('click', tnResetExpr);
+    document.getElementById('tn-btn-ov-new').addEventListener('click', tnStartGame);
+    document.getElementById('tn-btn-ov-retry').addEventListener('click', () => { tnHideOverlay(); tnResetExpr(); });
+    document.getElementById('tn-btn-back').addEventListener('click', () => {
+      tnHideOverlay();
+      tnGame.phase = 'idle';
+      showScreen('screen-home');
+      switchHomeTab('target');
+    });
+    document.querySelectorAll('#tn-op-row .tn-op-btn[data-tnop]').forEach(btn => {
+      btn.addEventListener('click', () => tnHandleOpClick(btn.dataset.tnop));
+    });
+    tnRenderAll();
+  });
+})();
+
 // ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   canvas     = document.getElementById('game-canvas');
