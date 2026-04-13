@@ -944,21 +944,59 @@
     .tn-btn-ov.primary { background: linear-gradient(135deg, #ff8c00, #2563eb); color: #fff; }
     .tn-btn-ov.secondary { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #e5e7eb; }
     .tn-idle-msg { text-align: center; color: #374151; font-size: 1rem; padding: 20px 0; }
+    .tn-bottom-row { display: flex; gap: 10px; align-items: stretch; }
     .tn-btn-hint {
-      width: 100%;
-      padding: 10px;
+      flex: 0 0 auto;
+      padding: 10px 12px;
       background: rgba(255,255,255,0.05);
       border: 1px dashed rgba(255,255,255,0.2);
       border-radius: 10px;
       color: #6b7280;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.2s, color 0.2s, border-color 0.2s;
       font-family: inherit;
+      white-space: nowrap;
     }
     .tn-btn-hint:hover:not(:disabled) { background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.4); color: #fbbf24; }
     .tn-btn-hint:disabled { opacity: 0.3; cursor: not-allowed; }
+    .tn-numhint-box {
+      flex: 1;
+      background: rgba(251,191,36,0.05);
+      border: 1px solid rgba(251,191,36,0.18);
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      user-select: none;
+    }
+    .tn-numhint-box:hover { background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.35); }
+    .tn-numhint-label { font-size: 0.65rem; color: #d97706; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 5px; }
+    .tn-numhint-slots { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; min-height: 26px; }
+    .tn-numhint-tile {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 30px;
+      height: 26px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 0 6px;
+    }
+    .tn-numhint-tile.revealed {
+      background: rgba(251,191,36,0.18);
+      border: 1px solid rgba(251,191,36,0.5);
+      color: #fde68a;
+    }
+    .tn-numhint-tile.hidden {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #374151;
+      letter-spacing: 0.05em;
+    }
+    .tn-numhint-idle { font-size: 0.75rem; color: #374151; }
     .tn-hint-box {
       background: rgba(251,191,36,0.06);
       border: 1px solid rgba(251,191,36,0.25);
@@ -1200,9 +1238,17 @@
         <button class="tn-btn-reset" id="tn-btn-reset-expr">초기화</button>
       </div>
 
-      <button class="tn-btn-hint" id="tn-btn-hint" disabled>💡 정답보기</button>
+      <div class="tn-bottom-row">
+        <button class="tn-btn-hint" id="tn-btn-hint" disabled>💡 정답보기</button>
+        <div class="tn-numhint-box" id="tn-numhint-box">
+          <div class="tn-numhint-label">힌트</div>
+          <div class="tn-numhint-slots" id="tn-numhint-slots">
+            <span class="tn-numhint-idle">게임을 시작하세요</span>
+          </div>
+        </div>
+      </div>
       <div class="tn-hint-box" id="tn-hint-box" style="display:none;">
-        <div class="tn-hint-label">힌트</div>
+        <div class="tn-hint-label">정답</div>
         <div class="tn-hint-expr" id="tn-hint-expr"></div>
       </div>
     </div>
@@ -3420,6 +3466,8 @@ function initEvents() {
     pendingSqrt: false,
     usedPanels: new Set(),
     phase: 'idle',
+    hintSolution: null,   // {nums, ops} from solver
+    hintRevealed: 0,      // how many nums revealed so far
   };
 
   function tnShuffled(arr) {
@@ -3831,40 +3879,100 @@ function initEvents() {
     return `${s} = ${tnGame.target}`;
   }
 
-  function tnShowHint() {
-    const hintBox  = document.getElementById('tn-hint-box');
-    const hintExpr = document.getElementById('tn-hint-expr');
-    const btn      = document.getElementById('tn-btn-hint');
+  // 솔루션 lazy 계산 (처음 요청 시 한 번만)
+  function tnEnsureSolution(cb) {
+    if (tnGame.hintSolution !== null) { cb(); return; }
+    const btn = document.getElementById('tn-btn-hint');
+    const box  = document.getElementById('tn-numhint-box');
     btn.textContent = '⏳ 계산 중...';
     btn.disabled = true;
-    // setTimeout to let UI update before heavy computation
+    box.style.pointerEvents = 'none';
     setTimeout(() => {
-      const sol = tnSolve();
-      hintExpr.textContent = tnFormatSolution(sol);
-      hintBox.style.display = 'block';
+      tnGame.hintSolution = tnSolve() || { nums: [], ops: [] };
       btn.textContent = '💡 정답보기';
       btn.disabled = false;
+      box.style.pointerEvents = '';
+      cb();
     }, 30);
+  }
+
+  // 힌트박스: 숫자 슬롯 렌더
+  function tnRenderNumHint() {
+    const slotsEl = document.getElementById('tn-numhint-slots');
+    const sol = tnGame.hintSolution;
+    if (!sol || sol.nums.length === 0) {
+      slotsEl.innerHTML = '<span class="tn-numhint-idle">힌트 없음</span>';
+      return;
+    }
+    const total = sol.nums.length;
+    const revealed = tnGame.hintRevealed;
+    let html = '';
+    for (let i = 0; i < total; i++) {
+      if (i < revealed) {
+        const label = String(sol.nums[i]).padStart(2, '0');
+        html += `<span class="tn-numhint-tile revealed">${label}</span>`;
+      } else {
+        html += `<span class="tn-numhint-tile hidden">??</span>`;
+      }
+    }
+    if (revealed < total) {
+      html += `<span class="tn-numhint-idle" style="font-size:0.7rem;margin-left:2px;">탭 ▶</span>`;
+    }
+    slotsEl.innerHTML = html;
+  }
+
+  // 힌트 클릭: 숫자 하나씩 공개
+  function tnRevealOneHint() {
+    if (tnGame.phase !== 'playing') return;
+    tnEnsureSolution(() => {
+      const total = tnGame.hintSolution ? tnGame.hintSolution.nums.length : 0;
+      if (tnGame.hintRevealed < total) {
+        tnGame.hintRevealed++;
+      }
+      tnRenderNumHint();
+    });
+  }
+
+  // 정답보기: 전체 수식 공개
+  function tnShowHint() {
+    if (tnGame.phase !== 'playing') return;
+    tnEnsureSolution(() => {
+      // 숫자 슬롯 전부 공개
+      tnGame.hintRevealed = tnGame.hintSolution ? tnGame.hintSolution.nums.length : 0;
+      tnRenderNumHint();
+      // 전체 수식도 표시
+      const hintBox  = document.getElementById('tn-hint-box');
+      const hintExpr = document.getElementById('tn-hint-expr');
+      hintExpr.textContent = tnFormatSolution(tnGame.hintSolution);
+      hintBox.style.display = 'block';
+    });
   }
 
   function tnHideHint() {
     document.getElementById('tn-hint-box').style.display = 'none';
+    document.getElementById('tn-numhint-slots').innerHTML =
+      '<span class="tn-numhint-idle">게임을 시작하세요</span>';
   }
 
   function tnStartGame() {
     tnHideOverlay();
     tnHideHint();
     const puzzle = tnGeneratePuzzle();
-    tnGame.pool        = puzzle.pool;
-    tnGame.target      = puzzle.target;
-    tnGame.k           = puzzle.k;
-    tnGame.tokens      = [];
-    tnGame.pendingSqrt = false;
-    tnGame.usedPanels  = new Set();
-    tnGame.phase       = 'playing';
+    tnGame.pool         = puzzle.pool;
+    tnGame.target       = puzzle.target;
+    tnGame.k            = puzzle.k;
+    tnGame.tokens       = [];
+    tnGame.pendingSqrt  = false;
+    tnGame.usedPanels   = new Set();
+    tnGame.phase        = 'playing';
+    tnGame.hintSolution = null;
+    tnGame.hintRevealed = 0;
     document.getElementById('tn-target-display').textContent = puzzle.target;
     document.getElementById('tn-k-display').textContent = `${puzzle.k}개 이상`;
     document.getElementById('tn-btn-hint').disabled = false;
+    // 힌트 슬롯 초기화 (??로 채워지는 건 첫 클릭 후)
+    document.getElementById('tn-numhint-slots').innerHTML =
+      '<span class="tn-numhint-idle" style="font-size:0.75rem;">탭하여 숫자 공개</span>';
     tnRenderAll();
   }
 
@@ -3880,6 +3988,7 @@ function initEvents() {
     document.getElementById('tn-btn-submit').addEventListener('click', tnCheckAnswer);
     document.getElementById('tn-btn-reset-expr').addEventListener('click', tnResetExpr);
     document.getElementById('tn-btn-hint').addEventListener('click', tnShowHint);
+    document.getElementById('tn-numhint-box').addEventListener('click', tnRevealOneHint);
     document.getElementById('tn-btn-ov-new').addEventListener('click', tnStartGame);
     document.getElementById('tn-btn-ov-retry').addEventListener('click', () => { tnHideOverlay(); tnResetExpr(); });
     document.getElementById('tn-btn-back').addEventListener('click', () => {
