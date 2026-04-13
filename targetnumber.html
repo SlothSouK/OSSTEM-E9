@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>타겟 넘버</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d1a;
+      color: #fff;
+      font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    /* ── 헤더 ── */
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 900;
+      background: linear-gradient(90deg, #ff8c00, #f97316, #2563eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+    .header p {
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    /* ── 메인 레이아웃 ── */
+    .game-layout {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 820px;
+    }
+
+    /* ── 왼쪽: 패널 + 연산자 ── */
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+
+    /* ── 4×4 숫자 그리드 ── */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .panel-btn {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: #e5e7eb;
+      font-size: 1.4rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s, opacity 0.2s;
+      position: relative;
+    }
+    .panel-btn:hover:not(.used):not(.idle) {
+      background: rgba(255,140,0,0.18);
+      border-color: rgba(255,140,0,0.6);
+      transform: translateY(-2px);
+    }
+    .panel-btn.used {
+      opacity: 0.28;
+      cursor: not-allowed;
+      border-color: rgba(255,255,255,0.06);
+    }
+    .panel-btn.idle {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .panel-btn.sqrt-pending {
+      border-color: #34d399;
+      background: rgba(52,211,153,0.1);
+      animation: pulse-green 0.8s ease infinite alternate;
+    }
+    @keyframes pulse-green {
+      from { box-shadow: 0 0 0 0 rgba(52,211,153,0.3); }
+      to   { box-shadow: 0 0 0 8px rgba(52,211,153,0); }
+    }
+
+    /* ── 연산자 버튼 영역 ── */
+    .op-section {
+      background: rgba(13,13,26,0.7);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .op-label {
+      font-size: 0.72rem;
+      color: #6b7280;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+    .op-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .op-btn {
+      flex: 1;
+      min-width: 48px;
+      padding: 10px 6px;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: #e5e7eb;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      text-align: center;
+    }
+    .op-btn:hover:not(:disabled) {
+      background: rgba(37,99,235,0.22);
+      border-color: rgba(37,99,235,0.5);
+      transform: translateY(-1px);
+    }
+    .op-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+    .op-btn.active-sqrt {
+      background: rgba(52,211,153,0.2);
+      border-color: #34d399;
+      color: #34d399;
+    }
+    .op-btn.back { color: #f87171; border-color: rgba(248,113,113,0.3); }
+    .op-btn.clear { color: #fbbf24; border-color: rgba(251,191,36,0.3); }
+    .op-btn.back:hover:not(:disabled) { background: rgba(248,113,113,0.15); border-color: #f87171; }
+    .op-btn.clear:hover:not(:disabled) { background: rgba(251,191,36,0.15); border-color: #fbbf24; }
+
+    /* 신규 게임 버튼 */
+    .btn-new {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #ff8c00, #2563eb);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.04em;
+    }
+    .btn-new:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* ── 오른쪽: 타겟 정보 + 수식 ── */
+    .right-panel {
+      width: 260px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .info-box {
+      background: rgba(13,13,26,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 18px 16px;
+      backdrop-filter: blur(6px);
+    }
+    .info-label {
+      font-size: 0.72rem;
+      color: #6b7280;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+    .target-number {
+      font-size: 3.2rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .k-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(255,140,0,0.15);
+      border: 1px solid rgba(255,140,0,0.35);
+      color: #ff8c00;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .expr-box {
+      background: rgba(13,13,26,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 16px;
+      min-height: 120px;
+      backdrop-filter: blur(6px);
+    }
+    .expr-display {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e5e7eb;
+      word-break: break-all;
+      min-height: 32px;
+      line-height: 1.6;
+    }
+    .expr-display .pending-sqrt {
+      color: #34d399;
+      font-weight: 800;
+    }
+    .expr-sep {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 10px 0;
+    }
+    .expr-result {
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+    .expr-result.ok { color: #34d399; }
+    .expr-result.err { color: #6b7280; }
+    .expr-result.close { color: #fbbf24; }
+
+    .expr-count {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 6px;
+    }
+    .expr-count.warn { color: #f87171; }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-submit {
+      flex: 1;
+      padding: 12px;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-submit:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-reset {
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      color: #9ca3af;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-reset:hover { background: rgba(255,255,255,0.13); }
+
+    /* ── 결과 오버레이 ── */
+    .result-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .result-overlay.show { display: flex; }
+    .result-card {
+      background: #0d0d1a;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 40px 48px;
+      text-align: center;
+      max-width: 360px;
+      width: 90%;
+    }
+    .result-emoji { font-size: 4rem; margin-bottom: 16px; }
+    .result-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+    .result-title.win {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .result-title.fail { color: #f87171; }
+    .result-sub { color: #6b7280; font-size: 0.9rem; margin-bottom: 24px; }
+    .result-btns { display: flex; gap: 12px; justify-content: center; }
+    .btn-ov {
+      padding: 11px 24px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s;
+    }
+    .btn-ov:hover { opacity: 0.85; }
+    .btn-ov.primary { background: linear-gradient(135deg, #ff8c00, #2563eb); color: #fff; }
+    .btn-ov.secondary { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #e5e7eb; }
+
+    /* ── 초기 대기 상태 ── */
+    .idle-msg {
+      text-align: center;
+      color: #374151;
+      font-size: 1rem;
+      padding: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔢 타겟 넘버</h1>
+  <p>패널 숫자로 수식을 만들어 타겟 넘버를 맞춰라!</p>
+</div>
+
+<div class="game-layout">
+  <!-- 왼쪽: 숫자 패널 + 연산자 -->
+  <div class="left-panel">
+    <div class="panel-grid" id="panel-grid">
+      <!-- JS로 렌더 -->
+      <div class="idle-msg" style="grid-column:1/-1;padding:40px 0;color:#374151;">
+        신규 게임을 눌러 시작하세요
+      </div>
+    </div>
+
+    <div class="op-section">
+      <div class="op-label">연산자</div>
+      <div class="op-row" id="op-row">
+        <button class="op-btn" data-op="+" disabled>+</button>
+        <button class="op-btn" data-op="-" disabled>−</button>
+        <button class="op-btn" data-op="×" disabled>×</button>
+        <button class="op-btn" data-op="÷" disabled>÷</button>
+        <button class="op-btn" id="btn-sqrt" data-op="sqrt" disabled>√</button>
+        <button class="op-btn" id="btn-sq" data-op="sq" disabled>x²</button>
+        <button class="op-btn back" id="btn-back" disabled>←</button>
+        <button class="op-btn clear" id="btn-clear" disabled>C</button>
+      </div>
+    </div>
+
+    <button class="btn-new" id="btn-new">🎲 신규 게임</button>
+  </div>
+
+  <!-- 오른쪽: 타겟 정보 + 수식 -->
+  <div class="right-panel">
+    <div class="info-box">
+      <div class="info-label">타겟 넘버</div>
+      <div class="target-number" id="target-display">—</div>
+      <div class="info-label" style="margin-bottom:4px;">활용 수</div>
+      <div class="k-badge" id="k-display">—</div>
+    </div>
+
+    <div class="expr-box">
+      <div class="info-label">수식</div>
+      <div class="expr-display" id="expr-display"><span style="color:#374151">수식을 입력하세요</span></div>
+      <hr class="expr-sep">
+      <div class="expr-result err" id="result-display">= ?</div>
+      <div class="expr-count" id="count-display"></div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-submit" id="btn-submit" disabled>제출</button>
+      <button class="btn-reset" id="btn-reset-expr">초기화</button>
+    </div>
+  </div>
+</div>
+
+<!-- 결과 오버레이 -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-card">
+    <div class="result-emoji" id="ov-emoji">🎉</div>
+    <div class="result-title" id="ov-title">정답!</div>
+    <div class="result-sub" id="ov-sub"></div>
+    <div class="result-btns">
+      <button class="btn-ov primary" id="btn-ov-new">신규 게임</button>
+      <button class="btn-ov secondary" id="btn-ov-retry">다시 시도</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let game = {
+  pool: [],
+  target: 0,
+  k: 1,
+  tokens: [],       // {type:'num',value,panelIdx,sqrt,sq} | {type:'op',value}
+  pendingSqrt: false,
+  usedPanels: new Set(),
+  phase: 'idle',    // 'idle' | 'playing'
+};
+
+// ─────────────────────────────────────────────
+//  UTILS
+// ─────────────────────────────────────────────
+function shuffled(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function randInt(min, max) {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+// ─────────────────────────────────────────────
+//  PUZZLE GENERATION (해답 보장)
+// ─────────────────────────────────────────────
+function evalRandom(nums) {
+  const ops = ['+', '-', '*', '/'];
+  let result = nums[0];
+  for (let i = 1; i < nums.length; i++) {
+    const op = ops[Math.floor(Math.random() * 4)];
+    if (op === '/' && nums[i] === 0) { result += nums[i]; continue; }
+    if (op === '+') result += nums[i];
+    else if (op === '-') result -= nums[i];
+    else if (op === '*') result *= nums[i];
+    else if (op === '/') result /= nums[i];
+  }
+  return result;
+}
+
+function generatePuzzle() {
+  const all = Array.from({length: 31}, (_, i) => i);
+  const pool = shuffled(all).slice(0, 16);
+  const k = randInt(1, 6);
+
+  // 최대 300회 시도: 랜덤 수식으로 1~200 범위 target 생성
+  for (let attempt = 0; attempt < 300; attempt++) {
+    const count = Math.min(k + randInt(0, 2), 16);
+    const chosen = shuffled(pool).slice(0, count);
+    const r = Math.round(evalRandom(chosen));
+    if (Number.isFinite(r) && r >= 1 && r <= 200) {
+      return { pool, target: r, k };
+    }
+  }
+
+  // 폴백: k개 숫자 합산 (다양한 조합 시도)
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const chosen = shuffled(pool).slice(0, k);
+    const sum = chosen.reduce((a, b) => a + b, 0);
+    if (sum >= 1 && sum <= 200) return { pool, target: sum, k };
+  }
+
+  // 최후 폴백: 첫 번째 양수 숫자 하나
+  const pos = pool.find(n => n >= 1 && n <= 200);
+  return { pool, target: pos || 10, k: 1 };
+}
+
+// ─────────────────────────────────────────────
+//  EXPRESSION EVALUATION
+// ─────────────────────────────────────────────
+function tokensToJsExpr(tokens) {
+  const opMap = { '+': '+', '-': '-', '×': '*', '÷': '/' };
+  let parts = [];
+  for (const tok of tokens) {
+    if (tok.type === 'op') {
+      parts.push(opMap[tok.value]);
+    } else if (tok.type === 'num') {
+      let v = tok.value;
+      let s;
+      if (tok.sqrt && tok.sq) s = `Math.pow(Math.sqrt(${v}),2)`;
+      else if (tok.sqrt)       s = `Math.sqrt(${v})`;
+      else if (tok.sq)         s = `Math.pow(${v},2)`;
+      else                     s = String(v);
+      parts.push(s);
+    }
+  }
+  return parts.join('');
+}
+
+function evalExpression(tokens) {
+  if (tokens.length === 0) return null;
+  const last = tokens[tokens.length - 1];
+  if (last.type === 'op') return null; // 연산자로 끝남 = 미완성
+
+  const jsExpr = tokensToJsExpr(tokens);
+  if (!jsExpr) return null;
+  try {
+    // eslint-disable-next-line no-new-func
+    const val = new Function(`return (${jsExpr})`)();
+    if (!Number.isFinite(val) || isNaN(val)) return null;
+    return val;
+  } catch {
+    return null;
+  }
+}
+
+function tokensToDisplay(tokens, pendingSqrt) {
+  let parts = tokens.map(tok => {
+    if (tok.type === 'op') return `<span style="color:#60a5fa"> ${tok.value} </span>`;
+    if (tok.type === 'num') {
+      let s = tok.value.toString();
+      if (tok.sqrt && tok.sq) return `<span style="color:#34d399">(√${s})²</span>`;
+      if (tok.sqrt) return `<span style="color:#34d399">√${s}</span>`;
+      if (tok.sq)   return `<span style="color:#a78bfa">${s}²</span>`;
+      return `<span style="color:#e5e7eb">${s}</span>`;
+    }
+    return '';
+  });
+  if (pendingSqrt) parts.push('<span class="pending-sqrt">√_</span>');
+  return parts.join('') || '<span style="color:#374151">수식을 입력하세요</span>';
+}
+
+// ─────────────────────────────────────────────
+//  GAME LOGIC
+// ─────────────────────────────────────────────
+function countUsedNums() {
+  return game.tokens.filter(t => t.type === 'num').length;
+}
+
+function getLastType() {
+  if (game.tokens.length === 0) return 'none';
+  return game.tokens[game.tokens.length - 1].type;
+}
+
+function canEnterNum() {
+  if (game.phase !== 'playing') return false;
+  if (game.pendingSqrt) return true; // √ 대기 중엔 숫자만 받음
+  const lt = getLastType();
+  return lt === 'none' || lt === 'op';
+}
+
+function canEnterOp() {
+  if (game.phase !== 'playing') return false;
+  if (game.pendingSqrt) return false;
+  const lt = getLastType();
+  return lt === 'num';
+}
+
+function handlePanelClick(idx) {
+  if (!canEnterNum()) return;
+  if (game.usedPanels.has(idx)) return;
+
+  const val = game.pool[idx];
+  game.tokens.push({
+    type: 'num',
+    value: val,
+    panelIdx: idx,
+    sqrt: game.pendingSqrt,
+    sq: false,
+  });
+  game.pendingSqrt = false;
+  game.usedPanels.add(idx);
+  renderAll();
+}
+
+function handleOpClick(op) {
+  if (op === 'sqrt') {
+    if (game.phase !== 'playing') return;
+    if (game.pendingSqrt) {
+      game.pendingSqrt = false; // 토글
+    } else if (getLastType() !== 'num') {
+      // 연산자 뒤 또는 시작 위치: 다음 숫자에 적용
+      game.pendingSqrt = true;
+    }
+    renderAll();
+    return;
+  }
+
+  if (op === 'sq') {
+    if (game.phase !== 'playing') return;
+    if (getLastType() !== 'num') return;
+    const last = game.tokens[game.tokens.length - 1];
+    if (!last.sq) last.sq = true;
+    renderAll();
+    return;
+  }
+
+  if (op === 'back') {
+    if (game.tokens.length === 0 && !game.pendingSqrt) return;
+    if (game.pendingSqrt) {
+      game.pendingSqrt = false;
+      renderAll();
+      return;
+    }
+    const removed = game.tokens.pop();
+    if (removed.type === 'num') game.usedPanels.delete(removed.panelIdx);
+    renderAll();
+    return;
+  }
+
+  if (op === 'clear') {
+    game.tokens = [];
+    game.pendingSqrt = false;
+    game.usedPanels.clear();
+    renderAll();
+    return;
+  }
+
+  // 사칙연산
+  if (!canEnterOp()) return;
+  game.tokens.push({ type: 'op', value: op });
+  renderAll();
+}
+
+function checkAnswer() {
+  const used = countUsedNums();
+  if (used < game.k) {
+    showOverlay(false, `활용 수 부족`, `${game.k}개 이상 사용해야 합니다. (현재 ${used}개)`);
+    return;
+  }
+  const raw = evalExpression(game.tokens);
+  if (raw === null) {
+    showOverlay(false, '수식 오류', '완성된 수식이 아닙니다.');
+    return;
+  }
+  const rounded = Math.round(raw);
+  if (rounded === game.target) {
+    showOverlay(true, '정답!', `${tokensToPlain(game.tokens)} = ${rounded}`);
+  } else {
+    showOverlay(false, `아쉬워요`, `결과: ${rounded} ≠ 타겟: ${game.target}`);
+  }
+}
+
+function tokensToPlain(tokens) {
+  return tokens.map(tok => {
+    if (tok.type === 'op') return ` ${tok.value} `;
+    if (tok.type === 'num') {
+      if (tok.sqrt && tok.sq) return `(√${tok.value})²`;
+      if (tok.sqrt) return `√${tok.value}`;
+      if (tok.sq)   return `${tok.value}²`;
+      return String(tok.value);
+    }
+    return '';
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────────
+function renderAll() {
+  renderPanels();
+  renderExpression();
+  updateOpButtons();
+}
+
+function renderPanels() {
+  const grid = document.getElementById('panel-grid');
+  if (game.phase === 'idle') {
+    grid.innerHTML = `<div class="idle-msg" style="grid-column:1/-1;padding:40px 0;color:#374151;">신규 게임을 눌러 시작하세요</div>`;
+    return;
+  }
+  grid.innerHTML = game.pool.map((num, i) => {
+    const used = game.usedPanels.has(i);
+    const canClick = canEnterNum() && !used;
+    let cls = 'panel-btn';
+    if (used) cls += ' used';
+    else if (!canClick) cls += ' idle';
+    if (game.pendingSqrt && !used) cls = 'panel-btn sqrt-pending';
+    const label = String(num).padStart(2, '0');
+    return `<button class="${cls}" data-idx="${i}" ${used || !canClick ? 'disabled' : ''}>${label}</button>`;
+  }).join('');
+
+  grid.querySelectorAll('.panel-btn:not(.used):not(.idle):not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => handlePanelClick(Number(btn.dataset.idx)));
+  });
+}
+
+function renderExpression() {
+  const exprEl   = document.getElementById('expr-display');
+  const resultEl = document.getElementById('result-display');
+  const countEl  = document.getElementById('count-display');
+  const submitEl = document.getElementById('btn-submit');
+
+  exprEl.innerHTML = tokensToDisplay(game.tokens, game.pendingSqrt);
+
+  const raw = evalExpression(game.tokens);
+  const used = countUsedNums();
+
+  if (raw === null) {
+    resultEl.textContent = '= ?';
+    resultEl.className = 'expr-result err';
+  } else {
+    const r = Math.round(raw);
+    if (r === game.target && used >= game.k) {
+      resultEl.textContent = `= ${r} ✓`;
+      resultEl.className = 'expr-result ok';
+    } else if (Math.abs(r - game.target) <= 5) {
+      resultEl.textContent = `= ${r}`;
+      resultEl.className = 'expr-result close';
+    } else {
+      resultEl.textContent = `= ${r}`;
+      resultEl.className = 'expr-result err';
+    }
+  }
+
+  if (game.phase === 'playing') {
+    const needMore = game.k - used;
+    if (used === 0) {
+      countEl.textContent = `숫자를 ${game.k}개 이상 사용하세요`;
+      countEl.className = 'expr-count warn';
+    } else if (needMore > 0) {
+      countEl.textContent = `${needMore}개 더 사용해야 합니다 (${used}/${game.k}+)`;
+      countEl.className = 'expr-count warn';
+    } else {
+      countEl.textContent = `사용: ${used}개 (활용 수 ${game.k}개 이상 충족)`;
+      countEl.className = 'expr-count';
+    }
+  } else {
+    countEl.textContent = '';
+  }
+
+  const canSubmit = game.phase === 'playing' && raw !== null && used >= game.k;
+  submitEl.disabled = !canSubmit;
+}
+
+function updateOpButtons() {
+  const opBtns = document.querySelectorAll('#op-row .op-btn[data-op]');
+  opBtns.forEach(btn => {
+    const op = btn.dataset.op;
+    let enabled = false;
+    if (game.phase !== 'playing') {
+      enabled = false;
+    } else if (op === 'sqrt') {
+      enabled = !game.pendingSqrt ? (getLastType() !== 'num') : true;
+      enabled = true; // 언제든 토글 가능
+    } else if (op === 'sq') {
+      enabled = getLastType() === 'num' && !game.tokens[game.tokens.length - 1]?.sq;
+    } else if (op === 'back') {
+      enabled = game.tokens.length > 0 || game.pendingSqrt;
+    } else if (op === 'clear') {
+      enabled = game.tokens.length > 0 || game.pendingSqrt;
+    } else {
+      // 사칙연산
+      enabled = canEnterOp();
+    }
+    btn.disabled = !enabled;
+  });
+
+  const sqrtBtn = document.getElementById('btn-sqrt');
+  if (sqrtBtn) {
+    sqrtBtn.classList.toggle('active-sqrt', game.pendingSqrt);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  OVERLAY
+// ─────────────────────────────────────────────
+function showOverlay(win, title, sub) {
+  document.getElementById('ov-emoji').textContent = win ? '🎉' : '😢';
+  const titleEl = document.getElementById('ov-title');
+  titleEl.textContent = title;
+  titleEl.className = win ? 'result-title win' : 'result-title fail';
+  document.getElementById('ov-sub').textContent = sub;
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+function hideOverlay() {
+  document.getElementById('result-overlay').classList.remove('show');
+}
+
+// ─────────────────────────────────────────────
+//  GAME START
+// ─────────────────────────────────────────────
+function startGame() {
+  hideOverlay();
+  const puzzle = generatePuzzle();
+  game.pool        = puzzle.pool;
+  game.target      = puzzle.target;
+  game.k           = puzzle.k;
+  game.tokens      = [];
+  game.pendingSqrt = false;
+  game.usedPanels  = new Set();
+  game.phase       = 'playing';
+
+  document.getElementById('target-display').textContent = puzzle.target;
+  document.getElementById('k-display').textContent = `${puzzle.k}개 이상`;
+
+  renderAll();
+}
+
+function resetExpr() {
+  game.tokens      = [];
+  game.pendingSqrt = false;
+  game.usedPanels  = new Set();
+  renderAll();
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-new').addEventListener('click', startGame);
+  document.getElementById('btn-submit').addEventListener('click', checkAnswer);
+  document.getElementById('btn-reset-expr').addEventListener('click', resetExpr);
+  document.getElementById('btn-ov-new').addEventListener('click', startGame);
+  document.getElementById('btn-ov-retry').addEventListener('click', () => {
+    hideOverlay();
+    resetExpr();
+  });
+
+  // 연산자 버튼
+  document.querySelectorAll('#op-row .op-btn[data-op]').forEach(btn => {
+    btn.addEventListener('click', () => handleOpClick(btn.dataset.op));
+  });
+
+  renderAll();
+});
+</script>
+</body>
+</html>
