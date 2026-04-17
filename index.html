@@ -1201,9 +1201,13 @@
     <div class="legend-title">⚔️ 무기 종류</div>
     <div class="legend-row"><span class="legend-icon">🗡️</span><span>단검 — 근처 적 즉시 공격</span></div>
     <div class="legend-row"><span class="legend-icon">🏹</span><span>화살 — 무작위 방향으로 발사</span></div>
-    <div class="legend-row"><span class="legend-icon">💣</span><span>폭탄 — 범위 내 폭발 데미지</span></div>
-    <div class="legend-row"><span class="legend-icon">⚡</span><span>번개 — 가장 가까운 적 타격</span></div>
-    <div class="legend-row"><span class="legend-icon">🔥</span><span>화염 — 이동 경로에 불 생성</span></div>
+    <div class="legend-row"><span class="legend-icon">⚡</span><span>번개 — 가장 가까운 적 타격 (2dmg)</span></div>
+    <div class="legend-row"><span class="legend-icon">🪃</span><span>부메랑 — 날아갔다 귀환, 넉다운</span></div>
+    <div class="legend-row"><span class="legend-icon">🪝</span><span>갈고리 — 가장 가까운 적 끌어당김</span></div>
+    <div class="legend-row"><span class="legend-icon">🕸️</span><span>그물 — 맞으면 1초 정지 + 1dmg</span></div>
+    <hr class="legend-sep">
+    <div class="legend-title">🐯 맹수</div>
+    <div class="legend-row"><span class="legend-icon">🐯🦁🐻🐺🦊</span><span>3초마다 1마리 출현, 무기 보유</span></div>
     <hr class="legend-sep">
     <div class="legend-title">❤️ HP</div>
     <div class="legend-row"><span class="legend-icon">♥</span><span>HP 3 — 모두 소진 시 탈락</span></div>
@@ -4165,15 +4169,26 @@ function initEvents() {
 
   // ── 상수 ─────────────────────────────────────────────────
   const BR_BALL_R  = 11;
-  const BR_MAX_HP  = 3;
+  const BR_MAX_HP  = 5;
+  const BR_BEAST_HP = 1;
   const BR_SPEED   = 1.9;
 
   const WEAPONS = [
-    { id:'dagger',    name:'단검', emoji:'🗡️', cooldown:1700, range:72,  dmg:1 },
-    { id:'arrow',     name:'화살', emoji:'🏹', cooldown:2400, range:390, dmg:1 },
-    { id:'bomb',      name:'폭탄', emoji:'💣', cooldown:3800, range:88,  dmg:1 },
-    { id:'lightning', name:'번개', emoji:'⚡', cooldown:2900, range:215, dmg:2 },
-    { id:'fire',      name:'화염', emoji:'🔥', cooldown:150,  range:30,  dmg:1 },
+    { id:'dagger',    name:'단검',   emoji:'🗡️', cooldown:1400, range:72,  dmg:1 },
+    { id:'arrow',     name:'화살',   emoji:'🏹', cooldown:1200, range:390, dmg:1 },  // 빠른 연사
+    { id:'lightning', name:'번개',   emoji:'⚡', cooldown:2200, range:215, dmg:1 },  // 1dmg, 쿨타임 단축
+    { id:'boomerang', name:'부메랑', emoji:'🪃', cooldown:3800, range:999, dmg:1 },  // 넉다운 강력 → 느리게
+    { id:'hook',      name:'갈고리', emoji:'🪝', cooldown:2200, range:180, dmg:1 },  // 상황의존 → 빠르게
+    { id:'net',       name:'그물',   emoji:'🕸️', cooldown:4200, range:999, dmg:1 },  // 정지 최강 → 가장 느리게
+  ];
+
+  const BEASTS = [
+    { emoji:'🐯', name:'호랑이', color:'#f97316' },
+    { emoji:'🐧', name:'펭귄',   color:'#60a5fa' },
+    { emoji:'🦁', name:'사자',   color:'#fbbf24' },
+    { emoji:'🐻', name:'곰',     color:'#92400e' },
+    { emoji:'🐺', name:'늑대',   color:'#9ca3af' },
+    { emoji:'🦊', name:'여우',   color:'#fb923c' },
   ];
 
   // ── 상태 ─────────────────────────────────────────────────
@@ -4218,13 +4233,15 @@ function initEvents() {
 
   // ── 파이터 생성 ──────────────────────────────────────────
   function makeFighter(name,color,idx,total,cx,cy,arenaR){
-    const spawnR=Math.min(arenaR*0.35,85);
-    const angle=(2*Math.PI/total)*idx;
+    // 아레나 안 랜덤 위치 (경계에서 최소 30px 안쪽)
+    const safeR=arenaR-BR_BALL_R-30;
+    const spawnAngle=Math.random()*Math.PI*2;
+    const spawnDist=Math.sqrt(Math.random())*safeR;
     const w=WEAPONS[rndI(0,WEAPONS.length)];
     return {
       name,color,idx,
-      x:cx+Math.cos(angle)*spawnR+rnd(-8,8),
-      y:cy+Math.sin(angle)*spawnR+rnd(-8,8),
+      x:cx+Math.cos(spawnAngle)*spawnDist,
+      y:cy+Math.sin(spawnAngle)*spawnDist,
       vx:rnd(-1.2,1.2), vy:rnd(-1.2,1.2),
       hp:BR_MAX_HP, alive:true,
       weapon:w,
@@ -4232,6 +4249,8 @@ function initEvents() {
       hitFlash:0,
       deathTimer:0,
       flameCooldown:0,
+      knockdown:0,
+      frozen:0,
       wanderAngle:Math.random()*Math.PI*2,
       wanderTimer:rnd(500,1500),
     };
@@ -4241,8 +4260,11 @@ function initEvents() {
   function brInit(names){
     brS.lastNames=names;
     brS.fighters=[];
+    brS.beasts=[];
+    brS.beastTimer=0;
+    brS.healthItems=[];
+    brS.healthSpawnTimer=0;
     brS.projectiles=[];
-    brS.bombs=[];
     brS.flames=[];
     brS.lightnings=[];
     brS.slashes=[];
@@ -4256,7 +4278,10 @@ function initEvents() {
     const size=Math.min(window.innerWidth-220, window.innerHeight-40, 700);
     canvas.width=size; canvas.height=size;
     const cx=size/2, cy=size/2;
-    const r=size/2-40;
+    // 50명 기준 반지름, 참가자 수 비례 확장 (최대 canvas 여백 내)
+    const baseR=size/2-40;
+    const scale=Math.sqrt(names.length/50);
+    const r=Math.min(baseR, Math.round(baseR*0.55 + baseR*0.45*scale));
     brS.arena={cx,cy,r,maxR:r,minR:72};
     brS.shrinkDelay=10000;   // 10초 후 수축 시작
     brS.shrinkTimer=0;
@@ -4313,6 +4338,15 @@ function initEvents() {
         if(f.deathTimer>0) f.deathTimer=Math.max(0,f.deathTimer-dt);
         return;
       }
+      // 상태이상 감소
+      if(f.knockdown>0) f.knockdown=Math.max(0,f.knockdown-dt);
+      if(f.frozen>0)    f.frozen   =Math.max(0,f.frozen-dt);
+
+      // 넉다운/정지 중이면 이동·공격 불가
+      if(f.knockdown>0||f.frozen>0){
+        f.vx*=0.85; f.vy*=0.85;
+        f.x+=f.vx*sc; f.y+=f.vy*sc;
+      } else {
       // wander
       f.wanderTimer-=dt;
       if(f.wanderTimer<=0){
@@ -4324,6 +4358,7 @@ function initEvents() {
       const spd=Math.hypot(f.vx,f.vy);
       if(spd>BR_SPEED*1.6){f.vx*=BR_SPEED*1.6/spd;f.vy*=BR_SPEED*1.6/spd;}
       f.x+=f.vx*sc; f.y+=f.vy*sc;
+      }
 
       // arena boundary
       const d=dst(f.x,f.y,cx,cy);
@@ -4338,48 +4373,195 @@ function initEvents() {
       if(f.hitFlash>0) f.hitFlash=Math.max(0,f.hitFlash-dt);
       if(f.flameCooldown>0) f.flameCooldown=Math.max(0,f.flameCooldown-dt);
 
-      // weapon
-      f.wCooldown-=dt;
-      if(f.wCooldown<=0){
-        brFireWeapon(f);
-        f.wCooldown=f.weapon.cooldown;
-      }
-    });
-
-    // arrows
-    brS.projectiles=brS.projectiles.filter(p=>{
-      p.x+=p.vx*sc; p.y+=p.vy*sc; p.life-=dt;
-      if(p.life<=0||dst(p.x,p.y,cx,cy)>r) return false;
-      for(const f of brS.fighters){
-        if(!f.alive||f===p.owner) continue;
-        if(dst(p.x,p.y,f.x,f.y)<BR_BALL_R+5){brHit(f,p.dmg);return false;}
-      }
-      return true;
-    });
-
-    // bombs
-    brS.bombs=brS.bombs.filter(b=>{
-      b.life-=dt;
-      if(b.life<=0){
-        brS.fighters.forEach(f=>{if(f.alive&&dst(b.x,b.y,f.x,f.y)<b.range) brHit(f,b.dmg);});
-        for(let i=0;i<18;i++){
-          const a=rnd(0,Math.PI*2);
-          brS.particles.push({x:b.x,y:b.y,vx:Math.cos(a)*rnd(2,7),vy:Math.sin(a)*rnd(2,7),life:rnd(300,650),maxLife:650,color:'#f97316',r:rnd(3,7)});
+      // weapon (상태이상 중 공격 불가)
+      if(f.knockdown<=0&&f.frozen<=0){
+        f.wCooldown-=dt;
+        if(f.wCooldown<=0){
+          brFireWeapon(f);
+          f.wCooldown=f.weapon.cooldown;
         }
-        brS.particles.push({x:b.x,y:b.y,vx:0,vy:0,life:350,maxLife:350,color:'#fef08a',r:b.range*0.75,type:'blast'});
-        return false;
+      }
+    });
+
+    // ── 체력 아이템 스폰 (6초마다, 최대 3개) ─────────────
+    brS.healthSpawnTimer+=dt;
+    if(brS.healthSpawnTimer>=6000 && brS.healthItems.length<3){
+      brS.healthSpawnTimer=0;
+      const {cx:hcx,cy:hcy,r:hr}=brS.arena;
+      const sa=Math.random()*Math.PI*2;
+      const sd=Math.sqrt(Math.random())*(hr-BR_BALL_R-20);
+      brS.healthItems.push({
+        x:hcx+Math.cos(sa)*sd,
+        y:hcy+Math.sin(sa)*sd,
+        life:12000,
+        bob:Math.random()*Math.PI*2,
+      });
+    }
+    brS.healthItems=brS.healthItems.filter(item=>{
+      item.life-=dt;
+      if(item.life<=0) return false;
+      const collectors=[...brS.fighters,...brS.beasts];
+      for(const f of collectors){
+        if(!f.alive) continue;
+        const maxHp=f.isBeast?BR_BEAST_HP:BR_MAX_HP;
+        if(f.hp>=maxHp) continue;
+        if(dst(f.x,f.y,item.x,item.y)<BR_BALL_R+10){
+          f.hp=Math.min(maxHp,f.hp+1);
+          f.hitFlash=200;
+          for(let i=0;i<8;i++){
+            const a=rnd(0,Math.PI*2);
+            brS.particles.push({x:item.x,y:item.y,vx:Math.cos(a)*rnd(1,3.5),vy:Math.sin(a)*rnd(1,3.5),life:500,maxLife:500,color:'#f43f5e',r:rnd(2,4)});
+          }
+          brUpdateSidebar();
+          return false;
+        }
       }
       return true;
     });
 
-    // flames
+    // 발사체 — 화살·부메랑·그물·갈고리 통합 처리
+    brS.projectiles=brS.projectiles.filter(p=>{
+      // 부메랑: 일정 거리 후 방향 반전
+      if(p.type==='boomerang'){
+        p.traveled=(p.traveled||0)+Math.hypot(p.vx,p.vy)*sc;
+        if(!p.returning && p.traveled>=p.maxDist){
+          p.returning=true;
+          p.vx=-p.vx; p.vy=-p.vy;
+        }
+        // 되돌아오는 중 원점 근처 도달 시 소멸
+        if(p.returning && dst(p.x,p.y,p.ox,p.oy)<14) return false;
+      }
+      // 갈고리: 타겟을 향해 날아감
+      if(p.type==='hook' && p.target && p.target.alive){
+        const tx=p.target.x-p.x, ty=p.target.y-p.y;
+        const td=Math.hypot(tx,ty)||1;
+        p.vx=tx/td*10; p.vy=ty/td*10;
+      }
+      p.x+=p.vx*sc; p.y+=p.vy*sc; p.life-=dt;
+      if(p.life<=0) return false;
+      if(p.type!=='boomerang' && dst(p.x,p.y,cx,cy)>r) return false;
+
+      // 충돌 대상
+      const victims=[...brS.fighters,...brS.beasts];
+      for(const f of victims){
+        if(!f.alive||f===p.owner) continue;
+        if(dst(p.x,p.y,f.x,f.y)<BR_BALL_R+6){
+          const isF=!f.isBeast;
+          if(p.type==='boomerang'){
+            isF?brHit(f,p.dmg):brHitBeast(f,p.dmg);
+            f.knockdown=1500; f.vx=p.vx*2; f.vy=p.vy*2; // 넉다운 + 밀려남
+          } else if(p.type==='net'){
+            isF?brHit(f,p.dmg):brHitBeast(f,p.dmg);
+            f.frozen=1000;  // 1초 정지
+            f.vx=0; f.vy=0;
+            // 그물 이펙트
+            brS.particles.push({x:f.x,y:f.y,vx:0,vy:0,life:1000,maxLife:1000,color:'#a3e635',r:BR_BALL_R*1.8,type:'net'});
+          } else if(p.type==='hook'){
+            // 갈고리: 적을 주인 쪽으로 끌어당김
+            const ox=p.owner.x, oy=p.owner.y;
+            const pd=dst(ox,oy,f.x,f.y)||1;
+            const nx2=(f.x-ox)/pd, ny2=(f.y-oy)/pd;
+            f.x=ox+nx2*30; f.y=oy+ny2*30; // 주인 바로 앞으로
+            f.vx=-nx2*4; f.vy=-ny2*4;
+            isF?brHit(f,p.dmg):brHitBeast(f,p.dmg);
+          } else {
+            isF?brHit(f,p.dmg):brHitBeast(f,p.dmg);
+          }
+          if(p.type!=='boomerang') return false; // 부메랑은 관통 안 함 (이미 맞혔으니 반전)
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // ── 맹수 스폰 (3초마다) ──────────────────────────────
+    brS.beastTimer+=dt;
+    if(brS.beastTimer>=3000){
+      brS.beastTimer=0;
+      const aliveBeasts=brS.beasts.filter(b=>b.alive).length;
+      const aliveFighters=brS.fighters.filter(f=>f.alive).length;
+      if(aliveBeasts>=aliveFighters){return;}
+      const {cx,cy,r}=brS.arena;
+      const safeR=r-BR_BALL_R-20;
+      const ba=Math.random()*Math.PI*2;
+      const bd=Math.sqrt(Math.random())*safeR;
+      const btype=BEASTS[rndI(0,BEASTS.length)];
+      const bweapon=WEAPONS[rndI(0,WEAPONS.length)];
+      brS.beasts.push({
+        name:btype.emoji, displayName:btype.name,
+        color:btype.color, emoji:btype.emoji,
+        x:cx+Math.cos(ba)*bd, y:cy+Math.sin(ba)*bd,
+        vx:rnd(-1.5,1.5), vy:rnd(-1.5,1.5),
+        hp:BR_BEAST_HP, maxHp:BR_BEAST_HP, alive:true,
+        weapon:bweapon,
+        wCooldown:rnd(500,1500),
+        hitFlash:0, deathTimer:0, flameCooldown:0,
+        knockdown:0, frozen:0,
+        wanderAngle:Math.random()*Math.PI*2,
+        wanderTimer:rnd(400,1200),
+        isBeast:true,
+      });
+    }
+
+    // ── 맹수 이동 + 전투 ─────────────────────────────────
+    brS.beasts=brS.beasts.filter(b=>{
+      if(!b.alive){
+        if(b.deathTimer>0) b.deathTimer=Math.max(0,b.deathTimer-dt);
+        return b.deathTimer>0;
+      }
+      // wander
+      b.wanderTimer-=dt;
+      if(b.wanderTimer<=0){
+        // 맹수는 가장 가까운 파이터 방향으로 향하는 경향
+        const alive=brS.fighters.filter(f=>f.alive);
+        if(alive.length){
+          const target=alive.reduce((n,f)=>dst(b.x,b.y,f.x,f.y)<dst(b.x,b.y,n.x,n.y)?f:n,alive[0]);
+          b.wanderAngle=Math.atan2(target.y-b.y,target.x-b.x)+rnd(-0.6,0.6);
+        } else {
+          b.wanderAngle+=rnd(-Math.PI*0.6,Math.PI*0.6);
+        }
+        b.wanderTimer=rnd(400,1000);
+      }
+      const bspd=BR_SPEED*1.15;
+      b.vx+=(Math.cos(b.wanderAngle)*bspd-b.vx)*0.06;
+      b.vy+=(Math.sin(b.wanderAngle)*bspd-b.vy)*0.06;
+      const spd2=Math.hypot(b.vx,b.vy);
+      if(spd2>bspd*1.5){b.vx*=bspd*1.5/spd2;b.vy*=bspd*1.5/spd2;}
+      b.x+=b.vx*sc; b.y+=b.vy*sc;
+      // 경계
+      const {cx,cy,r}=brS.arena;
+      const d2=dst(b.x,b.y,cx,cy);
+      if(d2+BR_BALL_R>r){
+        const nx2=(b.x-cx)/d2,ny2=(b.y-cy)/d2;
+        const dot2=b.vx*nx2+b.vy*ny2;
+        b.vx-=2*dot2*nx2;b.vy-=2*dot2*ny2;
+        b.x=cx+nx2*(r-BR_BALL_R-1);b.y=cy+ny2*(r-BR_BALL_R-1);
+        b.wanderAngle=Math.atan2(-ny2,-nx2)+rnd(-0.5,0.5);
+      }
+      if(b.hitFlash>0) b.hitFlash=Math.max(0,b.hitFlash-dt);
+      if(b.flameCooldown>0) b.flameCooldown=Math.max(0,b.flameCooldown-dt);
+      if(b.knockdown>0) b.knockdown=Math.max(0,b.knockdown-dt);
+      if(b.frozen>0)    b.frozen   =Math.max(0,b.frozen-dt);
+      // 무기 공격 (상태이상 중 불가)
+      if(b.knockdown<=0&&b.frozen<=0){
+        b.wCooldown-=dt;
+        if(b.wCooldown<=0){
+          brBeastAttack(b);
+          b.wCooldown=b.weapon.cooldown;
+        }
+      }
+      return true;
+    });
+
+    // flames — 파이터 + 맹수 모두 피격
     brS.flames=brS.flames.filter(fl=>{
       fl.life-=dt;
       if(fl.life<=0) return false;
-      brS.fighters.forEach(f=>{
+      const victims=[...brS.fighters,...brS.beasts];
+      victims.forEach(f=>{
         if(!f.alive||f===fl.owner) return;
         if(f.flameCooldown<=0&&dst(fl.x,fl.y,f.x,f.y)<BR_BALL_R+fl.r){
-          brHit(f,1);
+          f.isBeast ? brHitBeast(f,1) : brHit(f,1);
           f.flameCooldown=900;
         }
       });
@@ -4398,23 +4580,18 @@ function initEvents() {
   // ── 무기 발사 ────────────────────────────────────────────
   function brFireWeapon(f){
     const w=f.weapon;
-    const enemies=brS.fighters.filter(e=>e.alive&&e!==f);
+    const enemies=[...brS.fighters,...brS.beasts].filter(e=>e.alive&&e!==f);
     if(!enemies.length) return;
 
     if(w.id==='dagger'){
-      let hit=false;
-      enemies.forEach(e=>{if(dst(f.x,f.y,e.x,e.y)<w.range){brHit(e,w.dmg);hit=true;}});
+      let nearest=null, nd=Infinity;
+      enemies.forEach(e=>{const d=dst(f.x,f.y,e.x,e.y);if(d<w.range&&d<nd){nearest=e;nd=d;}});
+      if(nearest) brHit(nearest,w.dmg);
       brS.slashes.push({x:f.x,y:f.y,angle:Math.random()*Math.PI*2,life:260,maxLife:260,r:w.range});
 
     } else if(w.id==='arrow'){
       const a=Math.random()*Math.PI*2, spd=8;
-      brS.projectiles.push({x:f.x,y:f.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,dmg:w.dmg,owner:f,life:1500,color:'#b45309'});
-
-    } else if(w.id==='bomb'){
-      const {cx,cy,r}=brS.arena;
-      const a=Math.random()*Math.PI*2;
-      const tr=rnd(0,r*0.82);
-      brS.bombs.push({x:cx+Math.cos(a)*tr,y:cy+Math.sin(a)*tr,dmg:w.dmg,life:1600,range:w.range,owner:f});
+      brS.projectiles.push({type:'arrow',x:f.x,y:f.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,dmg:w.dmg,owner:f,life:1500,color:'#b45309'});
 
     } else if(w.id==='lightning'){
       let nearest=null, nd=Infinity;
@@ -4424,12 +4601,77 @@ function initEvents() {
         brS.lightnings.push({x1:f.x,y1:f.y,x2:nearest.x,y2:nearest.y,life:320,maxLife:320});
       }
 
-    } else if(w.id==='fire'){
-      brS.flames.push({x:f.x+rnd(-5,5),y:f.y+rnd(-5,5),owner:f,life:1900,maxLife:1900,r:w.range});
+    } else if(w.id==='boomerang'){
+      const a=Math.random()*Math.PI*2, spd=7;
+      brS.projectiles.push({
+        type:'boomerang', x:f.x, y:f.y, ox:f.x, oy:f.y,
+        vx:Math.cos(a)*spd, vy:Math.sin(a)*spd,
+        dmg:w.dmg, owner:f, life:2200,
+        maxDist:brS.arena.r*0.55, traveled:0, returning:false,
+        color:'#fbbf24',
+      });
+
+    } else if(w.id==='hook'){
+      // 가장 가까운 적 타겟
+      let nearest=null, nd=Infinity;
+      const all=[...brS.fighters,...brS.beasts];
+      all.forEach(e=>{
+        if(!e.alive||e===f) return;
+        const d=dst(f.x,f.y,e.x,e.y);
+        if(d<w.range&&d<nd){nearest=e;nd=d;}
+      });
+      if(nearest){
+        const a=Math.atan2(nearest.y-f.y,nearest.x-f.x);
+        brS.projectiles.push({
+          type:'hook', x:f.x, y:f.y,
+          vx:Math.cos(a)*9, vy:Math.sin(a)*9,
+          dmg:w.dmg, owner:f, target:nearest, life:1800,
+          color:'#a3a3a3',
+        });
+      }
+
+    } else if(w.id==='net'){
+      const a=Math.random()*Math.PI*2, spd=4.5;
+      brS.projectiles.push({
+        type:'net', x:f.x, y:f.y,
+        vx:Math.cos(a)*spd, vy:Math.sin(a)*spd,
+        dmg:w.dmg, owner:f, life:2000,
+        color:'#a3e635',
+      });
     }
   }
 
-  // ── 피격 ─────────────────────────────────────────────────
+  // ── 맹수 공격 (파이터 + 다른 맹수 타겟) ────────────────────
+  function brBeastAttack(b){
+    const w=b.weapon;
+    const targets=[...brS.fighters,...brS.beasts].filter(e=>e.alive&&e!==b);
+    if(!targets.length) return;
+    if(w.id==='dagger'){
+      let nearest=null, nd=Infinity;
+      targets.forEach(e=>{const d=dst(b.x,b.y,e.x,e.y);if(d<w.range&&d<nd){nearest=e;nd=d;}});
+      if(nearest) brHit(nearest,w.dmg);
+      brS.slashes.push({x:b.x,y:b.y,angle:Math.random()*Math.PI*2,life:260,maxLife:260,r:w.range});
+    } else if(w.id==='arrow'){
+      const a=Math.random()*Math.PI*2;
+      brS.projectiles.push({type:'arrow',x:b.x,y:b.y,vx:Math.cos(a)*8,vy:Math.sin(a)*8,dmg:w.dmg,owner:b,life:1500,color:b.color});
+    } else if(w.id==='lightning'){
+      let nearest=null,nd=Infinity;
+      targets.forEach(e=>{const d=dst(b.x,b.y,e.x,e.y);if(d<w.range&&d<nd){nearest=e;nd=d;}});
+      if(nearest){brHit(nearest,w.dmg);brS.lightnings.push({x1:b.x,y1:b.y,x2:nearest.x,y2:nearest.y,life:320,maxLife:320});}
+    } else if(w.id==='boomerang'){
+      const a=Math.random()*Math.PI*2, spd=7;
+      brS.projectiles.push({type:'boomerang',x:b.x,y:b.y,ox:b.x,oy:b.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,dmg:w.dmg,owner:b,life:2200,maxDist:brS.arena.r*0.55,traveled:0,returning:false,color:'#fbbf24'});
+    } else if(w.id==='hook'){
+      let nearest=null,nd=Infinity;
+      targets.forEach(e=>{const d=dst(b.x,b.y,e.x,e.y);if(d<w.range&&d<nd){nearest=e;nd=d;}});
+      if(nearest){const a=Math.atan2(nearest.y-b.y,nearest.x-b.x);brS.projectiles.push({type:'hook',x:b.x,y:b.y,vx:Math.cos(a)*9,vy:Math.sin(a)*9,dmg:w.dmg,owner:b,target:nearest,life:1800,color:'#a3a3a3'});}
+    } else if(w.id==='net'){
+      const a=Math.random()*Math.PI*2;
+      brS.projectiles.push({type:'net',x:b.x,y:b.y,vx:Math.cos(a)*4.5,vy:Math.sin(a)*4.5,dmg:w.dmg,owner:b,life:2000,color:'#a3e635'});
+    }
+  }
+
+  // ── 피격 (파이터) ────────────────────────────────────────
   function brHit(f,dmg){
     if(!f.alive) return;
     f.hp-=dmg;
@@ -4442,6 +4684,21 @@ function initEvents() {
         brS.particles.push({x:f.x,y:f.y,vx:Math.cos(a)*rnd(1.5,5.5),vy:Math.sin(a)*rnd(1.5,5.5),life:rnd(400,850),maxLife:850,color:f.color,r:rnd(2,5)});
       }
       brUpdateSidebar();
+    }
+  }
+
+  // ── 피격 (맹수) ──────────────────────────────────────────
+  function brHitBeast(b,dmg){
+    if(!b.alive) return;
+    b.hp-=dmg;
+    b.hitFlash=280;
+    if(b.hp<=0){
+      b.alive=false;
+      b.deathTimer=600;
+      for(let i=0;i<10;i++){
+        const a=rnd(0,Math.PI*2);
+        brS.particles.push({x:b.x,y:b.y,vx:Math.cos(a)*rnd(2,6),vy:Math.sin(a)*rnd(2,6),life:rnd(300,700),maxLife:700,color:b.color,r:rnd(2,5)});
+      }
     }
   }
 
@@ -4582,6 +4839,10 @@ function initEvents() {
         g.addColorStop(1,'transparent');
         ctx.fillStyle=g;
         ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      } else if(p.type==='net'){
+        ctx.font=`${p.r*1.3}px sans-serif`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('🕸️',p.x,p.y);
       } else {
         ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
         ctx.fillStyle=p.color;ctx.fill();
@@ -4628,40 +4889,39 @@ function initEvents() {
       ctx.restore();
     });
 
-    // 폭탄
-    brS.bombs.forEach(b=>{
-      const t=b.life/1600;
-      const pulse=1+0.18*Math.sin(Date.now()/(t*55+35));
-      ctx.save();
-      ctx.translate(b.x,b.y);
-      ctx.rotate(Date.now()/280);
-      const br2=9*pulse;
-      ctx.beginPath();ctx.arc(0,0,br2,0,Math.PI*2);
-      ctx.fillStyle='#1f2937';ctx.fill();
-      ctx.strokeStyle='#9ca3af';ctx.lineWidth=1.5;ctx.stroke();
-      ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.2;
-      ctx.beginPath();ctx.moveTo(br2*0.5,-br2*0.5);
-      ctx.quadraticCurveTo(br2*1.3,-br2*1.6,br2*0.9,-br2*2.1);ctx.stroke();
-      ctx.fillStyle='#fef08a';
-      ctx.beginPath();ctx.arc(br2*0.9,-br2*2.1,3,0,Math.PI*2);ctx.fill();
-      ctx.restore();
-      // 폭발 범위 표시
-      ctx.save();
-      ctx.globalAlpha=0.14*(1-t);
-      ctx.beginPath();ctx.arc(b.x,b.y,b.range,0,Math.PI*2);
-      ctx.fillStyle='#f97316';ctx.fill();
-      ctx.restore();
-    });
-
-    // 화살
+    // 발사체 렌더링
     brS.projectiles.forEach(p=>{
-      const angle=Math.atan2(p.vy,p.vx);
       ctx.save();
-      ctx.translate(p.x,p.y);ctx.rotate(angle);
-      ctx.fillStyle=p.color;
-      ctx.beginPath();ctx.moveTo(9,0);ctx.lineTo(-5,-3);ctx.lineTo(-5,3);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#78350f';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(-15,0);ctx.stroke();
+      if(p.type==='boomerang'){
+        ctx.translate(p.x,p.y);
+        ctx.rotate(Date.now()/80*(p.returning?-1:1));
+        ctx.font=`${BR_BALL_R*1.4}px sans-serif`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('🪃',0,0);
+      } else if(p.type==='net'){
+        ctx.translate(p.x,p.y);
+        ctx.font=`${BR_BALL_R*1.3}px sans-serif`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('🕸️',0,0);
+      } else if(p.type==='hook'){
+        // 갈고리 선 + 이모지
+        ctx.strokeStyle='#a3a3a3';ctx.lineWidth=1.5;
+        ctx.setLineDash([4,3]);
+        ctx.beginPath();ctx.moveTo(p.owner.x,p.owner.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.translate(p.x,p.y);
+        ctx.font=`${BR_BALL_R*1.2}px sans-serif`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('🪝',0,0);
+      } else {
+        // 화살
+        const angle=Math.atan2(p.vy,p.vx);
+        ctx.translate(p.x,p.y);ctx.rotate(angle);
+        ctx.fillStyle=p.color||'#b45309';
+        ctx.beginPath();ctx.moveTo(9,0);ctx.lineTo(-5,-3);ctx.lineTo(-5,3);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='#78350f';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(-15,0);ctx.stroke();
+      }
       ctx.restore();
     });
 
@@ -4681,6 +4941,7 @@ function initEvents() {
       grad.addColorStop(1,isHit?'#ffffff':f.color);
       ctx.beginPath();ctx.arc(0,0,BR_BALL_R,0,Math.PI*2);
       ctx.fillStyle=grad;
+      const healFlash=f.hitFlash>0&&f.hp>0;
       ctx.shadowBlur=isHit?20:10;
       ctx.shadowColor=isHit?'#fff':f.color;
       ctx.fill();ctx.shadowBlur=0;
@@ -4697,6 +4958,16 @@ function initEvents() {
       ctx.font='10px sans-serif';
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(f.weapon.emoji,BR_BALL_R+3,-BR_BALL_R-2);
+      // 상태이상 표시
+      if(f.knockdown>0){
+        ctx.font=`${BR_BALL_R*1.1}px sans-serif`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.globalAlpha=0.9;ctx.fillText('💫',0,0);ctx.globalAlpha=alpha;
+      } else if(f.frozen>0){
+        ctx.font=`${BR_BALL_R*1.1}px sans-serif`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.globalAlpha=0.85;ctx.fillText('🕸️',0,0);ctx.globalAlpha=alpha;
+      }
       // 이름
       const fz=Math.max(8,Math.min(12,Math.floor(22/Math.max(1,f.name.length/2))));
       ctx.font=`bold ${fz}px 'Segoe UI','Noto Sans KR',sans-serif`;
@@ -4705,6 +4976,69 @@ function initEvents() {
       ctx.strokeText(f.name,0,BR_BALL_R+4);
       ctx.fillStyle='#ffffff';
       ctx.fillText(f.name,0,BR_BALL_R+4);
+      ctx.restore();
+    });
+
+    // ── 체력 아이템 렌더링 ───────────────────────────────
+    brS.healthItems.forEach(item=>{
+      const bob=Math.sin(Date.now()/400+item.bob)*4;
+      const lifeRatio=item.life/12000;
+      const alpha=lifeRatio<0.3?lifeRatio/0.3:1;  // 소멸 직전 페이드
+      const pulse=0.85+0.15*Math.sin(Date.now()/300);
+      ctx.save();
+      ctx.globalAlpha=alpha;
+      // 글로우
+      ctx.shadowBlur=14*pulse;ctx.shadowColor='#f43f5e';
+      ctx.font=`${BR_BALL_R*1.6}px sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('❤️',item.x,item.y+bob);
+      ctx.shadowBlur=0;
+      // 소멸 임박 시 깜빡임 표시
+      if(lifeRatio<0.3){
+        ctx.font='bold 8px "Segoe UI",sans-serif';
+        ctx.fillStyle='#f43f5e';
+        ctx.textBaseline='bottom';
+        ctx.fillText('!',item.x,item.y+bob-BR_BALL_R-2);
+      }
+      ctx.restore();
+    });
+
+    // 맹수
+    brS.beasts.forEach(b=>{
+      if(!b.alive&&b.deathTimer<=0) return;
+      const alpha=b.alive?1:b.deathTimer/600;
+      const bsc=b.alive?1:(b.deathTimer/600)*0.5+0.5;
+      const isHit=b.hitFlash>0;
+      ctx.save();
+      ctx.globalAlpha=alpha;
+      ctx.translate(b.x,b.y);
+      ctx.scale(bsc,bsc);
+      // 공 body (맹수 색)
+      const bgrad=ctx.createRadialGradient(-BR_BALL_R*0.3,-BR_BALL_R*0.3,BR_BALL_R*0.1,0,0,BR_BALL_R);
+      bgrad.addColorStop(0,lighten(b.color,50));
+      bgrad.addColorStop(1,isHit?'#ffffff':b.color);
+      ctx.beginPath();ctx.arc(0,0,BR_BALL_R,0,Math.PI*2);
+      ctx.fillStyle=bgrad;
+      ctx.shadowBlur=isHit?20:12;ctx.shadowColor=isHit?'#fff':b.color;
+      ctx.fill();ctx.shadowBlur=0;
+      // 맹수 이모지 (공 위에 크게)
+      ctx.font=`${BR_BALL_R*1.5}px sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(b.emoji,0,1);
+      // HP 하트
+      for(let h=0;h<BR_BEAST_HP;h++){
+        const hx=(h-(BR_BEAST_HP-1)/2)*9;
+        ctx.beginPath();ctx.arc(hx,-BR_BALL_R-13,4,0,Math.PI*2);
+        ctx.fillStyle=h<b.hp?'#ef4444':'#374151';
+        ctx.shadowBlur=h<b.hp?5:0;ctx.shadowColor='#ef4444';
+        ctx.fill();ctx.shadowBlur=0;
+      }
+      // 이름 (작게)
+      ctx.font=`bold 9px 'Segoe UI',sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.lineWidth=2.5;ctx.strokeStyle='rgba(0,0,0,0.85)';
+      ctx.strokeText(b.displayName,0,BR_BALL_R+3);
+      ctx.fillStyle='#fff';ctx.fillText(b.displayName,0,BR_BALL_R+3);
       ctx.restore();
     });
 
